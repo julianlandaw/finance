@@ -5,6 +5,54 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 from functools import reduce
+import sys
+
+def load_portfolio_from_args(args):
+    """
+    Determine how to load the portfolio:
+    - If args[0] ends with '.csv', load CSV
+    - If args contain alternating tickers and shares, build DataFrame
+    - If no args, default to 'Portfolio.csv'
+    """
+    if not args:
+        default_csv = "Portfolio.csv"
+        if os.path.exists(default_csv):
+            print(f"📂 No arguments provided — loading default file: {default_csv}")
+            return pd.read_csv(default_csv)
+        else:
+            raise FileNotFoundError(
+                "❌ No input provided and 'Portfolio.csv' not found.\n"
+                "Please run either:\n"
+                "  python3 stockanalyzer.py my_portfolio.csv\n"
+                "or\n"
+                "  python3 stockanalyzer.py AAPL 100 MSFT 50 TSLA 25"
+            )
+
+    if len(args) == 1 and args[0].lower().endswith(".csv"):
+        csv_file = args[0]
+        if not os.path.exists(csv_file):
+            raise FileNotFoundError(f"❌ File not found: {csv_file}")
+        print(f"📄 Loading portfolio from CSV: {csv_file}")
+        return pd.read_csv(csv_file)
+
+    if len(args) % 2 != 0:
+        raise ValueError("❌ Invalid input format.\n"
+                         "Please provide ticker-share pairs, e.g.:\n"
+                         "  python3 stockanalyzer.py AAPL 100 MSFT 50")
+
+    tickers = args[::2]
+    shares = args[1::2]
+
+    try:
+        shares = [int(s) for s in shares]
+    except ValueError:
+        raise ValueError("❌ Share counts must be integers.\n"
+                         "Example: python3 stockanalyzer.py AAPL 100 GOOG 200")
+
+    portfolio = pd.DataFrame({"Ticker": tickers, "Shares": shares})
+    print("📊 Portfolio loaded from command-line input:")
+    print(portfolio)
+    return portfolio
 
 def get_stock_data(tickers, period="1y", interval="1d"):
     data = {}
@@ -52,14 +100,16 @@ def forecast_stock(ticker, df, periods, interval="1d", pdf_pages=None):
     return forecast
 
 if __name__ == "__main__":
+    args = sys.argv[1:]
+    portfolio_df = load_portfolio_from_args(args)
     # Settings
-    portfolio_csv = "portfolio.csv"  # path to portfolio CSV
+    # portfolio_csv = "portfolio.csv"  # path to portfolio CSV
     period = "1y"
     interval = "1d"  # daily or intraday
     intraday_forecast_periods = 50   # number of periods for intraday
 
     # Load portfolio CSV
-    portfolio_df = pd.read_csv(portfolio_csv)
+    # portfolio_df = pd.read_csv(portfolio_csv)
     portfolio = dict(zip(portfolio_df['Ticker'], portfolio_df['Shares']))
     tickers = list(portfolio.keys())
 
