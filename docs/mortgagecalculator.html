@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mortgage Payoff Calculator</title>
+  <style>
+    :root {
+      --bg: #0b0f14; --card: #121820; --ink: #e8f0ff;
+      --muted: #9fb3c8; --accent: #4fc3f7; --good: #7ee081; --warn: #f7b84f;
+      --border: #1f2a37; --bad: #ff6b6b;
+    }
+    html, body { background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    main { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.6rem; margin: 0 0 1rem; }
+    .grid { display: grid; gap: 1rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+    form .grid { grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
+    label { display:block; font-weight:600; margin-bottom: .35rem; }
+    input[type="number"], input[type="date"] {
+      width: 100%; padding:.6rem .7rem; border-radius: 8px; border:1px solid var(--border);
+      background:#0e141b; color:var(--ink);
+    }
+    select {
+      width: 100%;
+      padding: .6rem .7rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0e141b;
+      color: var(--ink);
+    }
+    fieldset { border: none; padding:0; margin:0; }
+    legend { font-weight:700; margin-bottom:.5rem; }
+    .actions { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem; }
+    button {
+      background: #243447; color: var(--ink); border: 1px solid var(--border);
+      padding:.6rem .9rem; border-radius: 8px; cursor: pointer;
+    }
+    button.primary { background: #2563eb; border-color:#2563eb; }
+    button.ghost { background: transparent; }
+    button.danger { background:#8b0000; border-color:#8b0000; }
+    .hint { color: var(--muted); font-size:.9rem; }
+    .kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:1rem; margin-top:1rem; }
+    .kpi { background: var(--card); border:1px solid var(--border); border-radius: 10px; padding:1rem; }
+    .kpi h3 { margin:.2rem 0; font-size:.95rem; color:var(--muted); }
+    .kpi p { font-size:1.2rem; margin:.1rem 0; }
+    canvas { width: 100%; height: 280px; background: #0e141b; border:1px solid var(--border); border-radius:10px; }
+    table { width:100%; border-collapse: collapse; margin-top:1rem; }
+    caption { text-align:left; color:var(--muted); margin-bottom:.5rem; }
+    th, td { border-bottom:1px solid var(--border); padding:.5rem .6rem; text-align:right; white-space:nowrap; }
+    th[scope="col"], td.label { text-align:left; }
+    .sr-only {
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+    .error { color: var(--bad); margin-top:.25rem; font-size:.9rem; }
+    @media (max-width: 640px) {
+      table { display:block; overflow:auto; }
+    }
+    .inline { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
+    .muted { color: var(--muted); }
+    .hidden { display:none !important; }
+
+    /* Tooltip + chart wrapper */
+    .chart-wrap { position: relative; }
+    .tooltip {
+      position: absolute;
+      background: rgba(18,24,32,0.95);
+      color: var(--ink);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .5rem .6rem;
+      pointer-events: none;
+      font-size: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      max-width: 260px;
+      z-index: 2;
+    }
+    .tooltip .muted { color: var(--muted); }
+    .tooltip .delta { color: var(--good); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Mortgage Payoff Calculator</h1>
+
+  <form id="calcForm" class="card" novalidate>
+    <fieldset class="grid">
+      <legend class="sr-only">Loan inputs</legend>
+
+      <div class="inline" role="radiogroup" aria-label="Payment mode">
+        <strong>Payment mode:</strong>
+        <label><input type="radio" name="mode" value="term" checked /> Compute from term</label>
+        <label><input type="radio" name="mode" value="custom" /> Use custom monthly payment</label>
+      </div>
+
+      <div>
+        <label for="principal">Loan amount (USD)</label>
+        <input id="principal" name="principal" type="number" inputmode="decimal" min="1000" step="0.01" required placeholder="e.g., 450000" />
+        <div id="principalErr" class="error" aria-live="polite"></div>
+      </div>
+
+      <div>
+        <label for="rate">Annual interest rate (%)</label>
+        <input id="rate" name="rate" type="number" inputmode="decimal" min="0" step="0.001" required placeholder="e.g., 6.75" />
+        <div id="rateErr" class="error" aria-live="polite"></div>
+      </div>
+
+      <div id="termWrap">
+        <label for="termYears">Term (years)</label>
+        <input id="termYears" name="termYears" type="number" inputmode="decimal" min="1" step="0.5" required placeholder="e.g., 30" />
+        <div class="hint">Calculates standard monthly payment for the given term.</div>
+        <div id="termErr" class="error" aria-live="polite"></div>
+      </div>
+
+      <div id="payWrap" class="hidden">
+        <label for="userPayment">Monthly payment (USD)</label>
+        <input id="userPayment" name="userPayment" type="number" inputmode="decimal" min="1" step="0.01" placeholder="e.g., 2800" />
+        <div id="payErr" class="error" aria-live="polite"></div>
+        <div class="hint">In custom mode, payoff time is computed from the amount you enter.</div>
+      </div>
+
+      <div>
+        <label for="startDate">Start date (optional)</label>
+        <input id="startDate" name="startDate" type="date" />
+        <div class="hint">Used to compute exact payoff date and schedule dates.</div>
+      </div>
+
+      <div>
+        <label for="extraMonthly">Extra principal per month (optional)</label>
+        <input id="extraMonthly" name="extraMonthly" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 200" />
+      </div>
+    </fieldset>
+
+    <fieldset style="margin-top:1rem;">
+      <legend>Variable lump sum payments</legend>
+      <div class="hint">Apply additional principal on specific dates (e.g., bonus, tax refund) or by payment number.</div>
+      <table id="lumpTable" aria-describedby="lumpHelp">
+        <caption id="lumpHelp" class="sr-only">Add rows of type/date-or-number and amount for lump-sum principal payments.</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="label">Type</th>
+            <th scope="col" class="label">Month (date or #)</th>
+            <th scope="col">Amount (USD)</th>
+            <th scope="col"> </th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="actions">
+        <button type="button" id="addLump">+ Add lump sum</button>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="primary" id="calcBtn">Calculate</button>
+      <button type="reset" class="ghost">Clear</button>
+      <button type="button" id="exportBtn" title="Export amortization table to CSV">Export CSV</button>
+    </div>
+    <div id="announce" role="status" aria-live="polite" class="hint" style="margin-top:.5rem;"></div>
+  </form>
+
+  <section id="results" hidden>
+    <div class="kpis">
+      <div class="kpi">
+        <h3>Monthly payment</h3>
+        <p id="kpiPayment">—</p>
+      </div>
+      <div class="kpi">
+        <h3>Total interest (no extras)</h3>
+        <p id="kpiInterestBase">—</p>
+      </div>
+      <div class="kpi">
+        <h3>Total interest (with extras)</h3>
+        <p id="kpiInterestWith">—</p>
+      </div>
+      <div class="kpi">
+        <h3>Interest saved</h3>
+        <p id="kpiSaved" style="color:var(--good)">—</p>
+      </div>
+      <div class="kpi">
+        <h3>Payoff date</h3>
+        <p id="kpiPayoff">—</p>
+      </div>
+      <div class="kpi">
+        <h3>Months saved</h3>
+        <p id="kpiMonthsSaved">—</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1rem;">
+      <h2 style="font-size:1.1rem;margin:.2rem 0 .8rem;">Remaining balance over time</h2>
+      <div class="chart-wrap">
+        <canvas id="chart" width="1000" height="300"
+          aria-label="Line chart of remaining balance: baseline (no extras) versus with extras"
+          role="img"></canvas>
+        <div id="chartTooltip" class="tooltip" hidden></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1rem;">
+      <table id="amortTable">
+        <caption>Amortization schedule</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="label">#</th>
+            <th scope="col" class="label">Date</th>
+            <th scope="col">Payment</th>
+            <th scope="col">Interest</th>
+            <th scope="col">Principal</th>
+            <th scope="col">Extra</th>
+            <th scope="col">Cumulative interest</th>
+            <th scope="col">Remaining balance</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  // ---------- Utilities ----------
+  const fmtCurrency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+  const toCents = (x) => Math.round((+x + Number.EPSILON) * 100) / 100;
+
+  function monthlyPayment(P, annualRatePct, nMonths) {
+    const r = (annualRatePct / 100) / 12;
+    if (r === 0) return toCents(P / nMonths);
+    const A = Math.pow(1 + r, nMonths);
+    return toCents(P * r * A / (A - 1));
+  }
+
+  function addLumpRow({ type = 'date', dateVal = '', nVal = '', amtVal = '' } = {}) {
+    const tbody = document.querySelector('#lumpTable tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="label">
+        <select class="lump-type" aria-label="Lump sum type">
+          <option value="date" ${type === 'date' ? 'selected' : ''}>Date</option>
+          <option value="n" ${type === 'n' ? 'selected' : ''}>Payment #</option>
+        </select>
+      </td>
+      <td class="label">
+        <input class="lump-date" type="date" value="${dateVal}" />
+        <input class="lump-n ${type === 'date' ? 'hidden' : ''}" type="number" inputmode="numeric" min="1" step="1" placeholder="e.g., 24" value="${nVal}" />
+      </td>
+      <td>
+        <input class="lump-amt" type="number" inputmode="decimal" min="0" step="0.01" value="${amtVal}" />
+      </td>
+      <td>
+        <button type="button" class="danger">Remove</button>
+      </td>
+    `;
+
+    const select = tr.querySelector('select.lump-type');
+    const dateInput = tr.querySelector('input.lump-date');
+    const nInput = tr.querySelector('input.lump-n');
+
+    function syncVisibility() {
+      const isDate = select.value === 'date';
+      dateInput.classList.toggle('hidden', !isDate);
+      nInput.classList.toggle('hidden', isDate);
+    }
+    select.addEventListener('change', syncVisibility);
+
+    tr.querySelector('button.danger').addEventListener('click', () => tr.remove());
+
+    tbody.appendChild(tr);
+    syncVisibility();
+  }
+
+  function parseLumps() {
+    const rows = [...document.querySelectorAll('#lumpTable tbody tr')];
+    return rows.map(tr => {
+      const type = tr.querySelector('select.lump-type')?.value;
+      const amt = Number(tr.querySelector('input.lump-amt')?.value) || 0;
+
+      if (type === 'date') {
+        const dVal = tr.querySelector('input.lump-date')?.value || '';
+        const d = dVal ? new Date(dVal + 'T12:00:00') : null;
+        return (d && amt > 0) ? { kind: 'date', date: d, amount: toCents(amt) } : null;
+      } else {
+        const nVal = Number(tr.querySelector('input.lump-n')?.value);
+        return (Number.isFinite(nVal) && nVal >= 1 && amt > 0)
+          ? { kind: 'n', n: Math.floor(nVal), amount: toCents(amt) }
+          : null;
+      }
+    }).filter(Boolean);
+  }
+
+  /**
+   * Build amortization schedule.
+   * Modes:
+   *  - { mode:'term', termMonths }  -> payment computed from term
+   *  - { mode:'custom', userPay }   -> use provided monthly payment
+   * Capping rule: total paid in any month (scheduled + extras) never exceeds interest + remaining principal.
+   */
+  function buildSchedule({ P, ratePct, startDate, mode, termMonths, userPay = 0, extraMonthly = 0, lumps = [] }) {
+    const r = (ratePct / 100) / 12;
+    const scheduledPay = mode === 'term'
+      ? monthlyPayment(P, ratePct, termMonths)
+      : toCents(userPay);
+
+    if (mode === 'custom') {
+      const firstMonthInterest = toCents(P * r);
+      if (scheduledPay <= firstMonthInterest) {
+        return { error: `Your monthly payment (${fmtCurrency.format(scheduledPay)}) is ≤ first month's interest (${fmtCurrency.format(firstMonthInterest)}). Increase payment to amortize the loan.` };
+      }
+    }
+
+    // Pre-index lumps by YYYY-MM (date-based) and by payment number (n-based)
+    const lumpByYYYYMM = new Map();
+    const lumpByN = new Map();
+    for (const L of lumps) {
+      if (L.kind === 'date' && L.date) {
+        const key = `${L.date.getUTCFullYear()}-${String(L.date.getUTCMonth() + 1).padStart(2, '0')}`;
+        lumpByYYYYMM.set(key, toCents((lumpByYYYYMM.get(key) || 0) + L.amount));
+      } else if (L.kind === 'n' && L.n >= 1) {
+        lumpByN.set(L.n, toCents((lumpByN.get(L.n) || 0) + L.amount));
+      }
+    }
+
+    let balance = P;
+    let cumInt = 0;
+    let date = startDate ? new Date(startDate.getTime()) : null;
+    const schedule = [];
+
+    let i = 0;
+    while (balance > 0 && i < 1000 * 12) { // safety guard
+      i++;
+      const interest = toCents(balance * r);
+
+      // Scheduled payment: allocate to interest first, then principal
+      let iFromSched = Math.min(interest, scheduledPay);
+      let pFromSched = toCents(Math.max(0, scheduledPay - iFromSched));
+      pFromSched = Math.min(pFromSched, balance); // cannot reduce beyond remaining principal
+
+      // Lump sums for this month from date and/or payment number
+      let lumpDate = 0;
+      if (date) {
+        const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+        lumpDate = toCents(lumpByYYYYMM.get(key) || 0);
+      }
+      const lumpN = toCents(lumpByN.get(i) || 0);
+
+      // Extras this month: recurring extra + lump sums (both kinds)
+      let extraP = toCents(extraMonthly + lumpDate + lumpN);
+      extraP = Math.min(extraP, toCents(balance - pFromSched));
+
+      // Cap: never pay more than (interest + remaining principal)
+      const maxThisMonth = toCents(interest + balance);
+      let totalPaid = toCents(iFromSched + pFromSched + extraP);
+
+      if (totalPaid > maxThisMonth) {
+        // Reduce extras first, then scheduled principal, then scheduled interest
+        let over = toCents(totalPaid - maxThisMonth);
+        if (extraP > 0 && over > 0) {
+          const cut = Math.min(extraP, over);
+          extraP = toCents(extraP - cut); over = toCents(over - cut);
+        }
+        if (pFromSched > 0 && over > 0) {
+          const cut = Math.min(pFromSched, over);
+          pFromSched = toCents(pFromSched - cut); over = toCents(over - cut);
+        }
+        if (iFromSched > 0 && over > 0) {
+          const cut = Math.min(iFromSched, over);
+          iFromSched = toCents(iFromSched - cut); over = toCents(over - cut);
+        }
+        totalPaid = toCents(iFromSched + pFromSched + extraP);
+      }
+
+      // Update balance & cumulative interest
+      balance = toCents(balance - pFromSched - extraP);
+      cumInt = toCents(cumInt + iFromSched);
+
+      schedule.push({
+        n: i,
+        date: date ? new Date(date.getTime()) : null,
+        payment: toCents(iFromSched + pFromSched), // scheduled portion actually paid this month
+        interest: iFromSched,
+        principal: pFromSched,
+        extra: extraP,
+        cumInt,
+        balance
+      });
+
+      // increment month
+      if (date) date.setUTCMonth(date.getUTCMonth() + 1);
+      if (i > 6000) break; // absolute cap
+    }
+
+    return {
+      schedule,
+      payment: scheduledPay,
+      totalInterest: cumInt,
+      months: schedule.length
+    };
+  }
+
+  function renderTable(tbody, schedule) {
+    const rows = schedule.map(row => {
+      const d = row.date ? row.date.toISOString().slice(0,10) : '';
+      return `<tr>
+        <td class="label">${row.n}</td>
+        <td class="label">${d}</td>
+        <td>${fmtCurrency.format(row.payment)}</td>
+        <td>${fmtCurrency.format(row.interest)}</td>
+        <td>${fmtCurrency.format(row.principal)}</td>
+        <td>${fmtCurrency.format(row.extra)}</td>
+        <td>${fmtCurrency.format(row.cumInt)}</td>
+        <td>${fmtCurrency.format(Math.max(0,row.balance))}</td>
+      </tr>`;
+    }).join('');
+    tbody.innerHTML = rows;
+  }
+
+    function drawChart(canvas, schedWithExtras, schedBase) {
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+    
+      // ---------- Tunables ----------
+      const MIN_X_LABEL_GAP = 48; // px minimum horizontal gap between x labels
+      const MIN_Y_LABEL_GAP = 14; // px minimum vertical gap between y labels
+      const AXIS_TITLE_Y = 'Remaining balance'; // y-axis title text
+      const AXIS_FONT = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    
+      // ---------- Helpers for auto ticks ----------
+      function niceNum(range, round) {
+        const exponent = Math.floor(Math.log10(Math.max(1e-12, range)));
+        const fraction = range / Math.pow(10, exponent);
+        let niceFraction;
+        if (round) {
+          if (fraction < 1.5) niceFraction = 1;
+          else if (fraction < 3) niceFraction = 2;
+          else if (fraction < 7) niceFraction = 5;
+          else niceFraction = 10;
+        } else {
+          if (fraction <= 1) niceFraction = 1;
+          else if (fraction <= 2) niceFraction = 2;
+          else if (fraction <= 5) niceFraction = 5;
+          else niceFraction = 10;
+        }
+        return niceFraction * Math.pow(10, exponent);
+      }
+      function autoTicks(min, max, desired = 6) {
+        if (!isFinite(min) || !isFinite(max) || max <= min) {
+          return { ticks: [min], step: 1, min, max };
+        }
+        const range = niceNum(max - min, false);
+        const step  = niceNum(range / (Math.max(2, desired) - 1), true);
+        const tmin  = Math.floor(min / step) * step;
+        const tmax  = Math.ceil(max / step) * step;
+        const ticks = [];
+        for (let v = tmin; v <= tmax + 0.5 * step; v += step) ticks.push(v);
+        return { ticks, step, min: tmin, max: tmax };
+      }
+      function autoMonthTicks(maxMonths, desired = 8) {
+        const candidates = [1, 2, 3, 6, 12, 24, 36, 48, 60, 72, 84, 96, 120, 180, 240, 360];
+        const target = Math.max(1, maxMonths / (Math.max(2, desired) - 1));
+        let step = candidates[0];
+        for (const c of candidates) {
+          if (Math.abs(c - target) < Math.abs(step - target)) step = c;
+        }
+        const ticks = [];
+        for (let v = 0; v <= maxMonths; v += step) ticks.push(v);
+        if (ticks[ticks.length - 1] !== maxMonths) ticks.push(maxMonths);
+        if (ticks[0] !== 0) ticks.unshift(0);
+        return { ticks, step };
+      }
+      const currencyShort = (v) => {
+        const abs = Math.abs(v);
+        const fmt = (n) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n);
+        if (abs >= 1e9) return '$' + fmt(v / 1e9) + 'B';
+        if (abs >= 1e6) return '$' + fmt(v / 1e6) + 'M';
+        if (abs >= 1e3) return '$' + fmt(v / 1e3) + 'k';
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
+      };
+    
+      // ---------- Build combined scales ----------
+      const xs1 = schedWithExtras.map(r => r.n);
+      const ys1 = schedWithExtras.map(r => r.balance);
+      const xs2 = schedBase.map(r => r.n);
+      const ys2 = schedBase.map(r => r.balance);
+    
+      const maxX = Math.max(xs1[xs1.length - 1] || 1, xs2[xs2.length - 1] || 1);
+      const maxY = Math.max(
+        ys1.length ? Math.max(...ys1) : 0,
+        ys2.length ? Math.max(...ys2) : 0,
+        1
+      );
+    
+      // ---------- Compute ticks ----------
+      const yTicks = autoTicks(0, maxY, 6);
+      const xTicks = autoMonthTicks(maxX, 8);
+    
+      // ---------- Measure labels and compute dynamic paddings ----------
+      ctx.font = AXIS_FONT;
+    
+      // Max width among all Y labels
+      let maxYLabelW = 0;
+      yTicks.ticks.forEach(val => {
+        const w = ctx.measureText(currencyShort(val)).width;
+        if (w > maxYLabelW) maxYLabelW = w;
+      });
+    
+      // Title "width" when rotated is its text width (used as horizontal space on the left)
+      const titleW = ctx.measureText(AXIS_TITLE_Y).width;
+    
+      // Layout: | 8px | (title rotated) | 10px | Y labels (right-aligned) | 8px | Y-axis line | plot | 40px right padding
+      const PAD_LEFT   = Math.ceil(40 + maxYLabelW); // axis sits at PAD_LEFT
+      const PAD_RIGHT  = 40;
+      const PAD_TOP    = 40;
+      const PAD_BOTTOM = 40;
+    
+      // Map functions use dynamic paddings
+      const plotW = Math.max(10, W - PAD_LEFT - PAD_RIGHT);
+      const plotH = Math.max(10, H - PAD_TOP - PAD_BOTTOM);
+      const xMap = (n) => PAD_LEFT + plotW * (n / Math.max(1, maxX));
+      const yMap = (bal) => (H - PAD_BOTTOM) - plotH * ((bal - yTicks.min) / Math.max(1e-9, (yTicks.max - yTicks.min)));
+    
+      // ---------- Clear and draw axes ----------
+      ctx.clearRect(0, 0, W, H);
+      ctx.strokeStyle = '#304355'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PAD_LEFT, H - PAD_BOTTOM); ctx.lineTo(W - PAD_RIGHT, H - PAD_BOTTOM); // x-axis
+      ctx.moveTo(PAD_LEFT, H - PAD_BOTTOM); ctx.lineTo(PAD_LEFT, PAD_TOP);             // y-axis
+      ctx.stroke();
+    
+      // ---------- Gridlines ----------
+      ctx.strokeStyle = '#1f2a37';
+      // Y gridlines
+      yTicks.ticks.forEach((val) => {
+        const y = yMap(val);
+        ctx.beginPath(); ctx.moveTo(PAD_LEFT, y); ctx.lineTo(W - PAD_RIGHT, y); ctx.stroke();
+      });
+      // X gridlines
+      xTicks.ticks.forEach((n) => {
+        const x = xMap(n);
+        ctx.beginPath(); ctx.moveTo(x, H - PAD_BOTTOM); ctx.lineTo(x, PAD_TOP); ctx.stroke();
+      });
+    
+      // ---------- Axis labels with smart skipping ----------
+      ctx.font = AXIS_FONT;
+      ctx.fillStyle = '#9fb3c8';
+    
+      // Y labels: right-aligned just to the left of the y-axis
+      ctx.textAlign = 'right';
+      let lastYDrawn = Infinity;
+      yTicks.ticks.forEach((val) => {
+        const y = yMap(val);
+        if (Math.abs(y - lastYDrawn) < MIN_Y_LABEL_GAP) return;
+        const yClamped = Math.min(H - PAD_BOTTOM - 2, Math.max(PAD_TOP + 12, y - 2));
+        ctx.fillText(currencyShort(val), PAD_LEFT - 8, yClamped);
+        lastYDrawn = yClamped;
+      });
+    
+      // X labels: centered, skip if too close
+      ctx.textAlign = 'center';
+      let lastRight = -Infinity;
+      xTicks.ticks.forEach((n, idx) => {
+        const x = xMap(n);
+        const label = String(n);
+        const w = ctx.measureText(label).width;
+        const left = x - w / 2;
+        const right = x + w / 2;
+    
+        if (idx === 0 || left - lastRight >= MIN_X_LABEL_GAP) {
+          ctx.fillText(label, x, H - PAD_BOTTOM + 14);
+          lastRight = right;
+        }
+      });
+      ctx.textAlign = 'left';
+    
+      // ---------- Series ----------
+      const drawSeries = (sched, color, dashed = false) => {
+        if (!sched.length) return;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        if (dashed) ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        sched.forEach((r, idx) => {
+          const x = xMap(r.n);
+          const y = yMap(Math.max(0, r.balance));
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.restore();
+      };
+      // Draw baseline under, with-extras over
+      drawSeries(schedBase, '#9fb3c8', true);
+      drawSeries(schedWithExtras, '#4fc3f7', false);
+    
+      // ---------- Axis titles ----------
+      ctx.fillStyle = '#9fb3c8';
+      // X title
+      ctx.fillText('Payments (months)', PAD_LEFT + plotW / 2 - 50, H - 10);
+    
+      // Y title: rotated and placed left of Y labels
+      ctx.save();
+      ctx.translate(titleW / 4, PAD_TOP + plotH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = 'center';
+      ctx.fillText(AXIS_TITLE_Y, 0, 0);
+      ctx.restore();
+    
+      // ---------- Legend ----------
+      const legendItems = [
+        { label: 'Baseline (no extras)', color: '#9fb3c8', dashed: true },
+        { label: 'With extras',         color: '#4fc3f7', dashed: false }
+      ];
+      const legendX = (W - PAD_RIGHT) - 180, legendY = PAD_TOP + 8, lineLen = 24, rowH = 18;
+      legendItems.forEach((it, i) => {
+        const y = legendY + i * rowH;
+        ctx.save();
+        ctx.strokeStyle = it.color; ctx.lineWidth = 2;
+        if (it.dashed) ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.moveTo(legendX, y); ctx.lineTo(legendX + lineLen, y); ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#e8f0ff';
+        ctx.fillText(it.label, legendX + lineLen + 8, y + 4);
+      });
+    
+      // ---------- Save background for hover redraws ----------
+      const baseImage = ctx.getImageData(0, 0, W, H);
+    
+      // ---------- Hover tooltip ----------
+      const wrap = canvas.parentElement; // .chart-wrap
+      const tip  = wrap.querySelector('#chartTooltip');
+    
+      function drawDot(x, y, color) {
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.strokeStyle = '#0b0f14';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+      function findRow(sched, n) {
+        if (!sched || !sched.length) return null;
+        let lo = 0, hi = sched.length - 1, ans = null;
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          const v = sched[mid].n;
+          if (v === n) return sched[mid];
+          if (v < n) { ans = sched[mid]; lo = mid + 1; }
+          else { hi = mid - 1; }
+        }
+        return ans || sched[0];
+      }
+      function onMove(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    
+        if (x < PAD_LEFT || x > W - PAD_RIGHT || y < PAD_TOP || y > H - PAD_BOTTOM) { onLeave(); return; }
+    
+        const t = (x - PAD_LEFT) / Math.max(1, plotW);
+        const hoverN = Math.min(maxX, Math.max(1, Math.round(t * maxX)));
+    
+        const rowWith = findRow(schedWithExtras, hoverN);
+        const rowBase = findRow(schedBase, hoverN);
+    
+        ctx.putImageData(baseImage, 0, 0);
+    
+        const nForX = (rowWith?.n ?? rowBase?.n ?? hoverN);
+        const xLine = xMap(nForX);
+        ctx.save();
+        ctx.strokeStyle = '#f7b84f';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(xLine, PAD_TOP); ctx.lineTo(xLine, H - PAD_BOTTOM); ctx.stroke();
+        ctx.restore();
+    
+        if (rowBase) drawDot(xMap(rowBase.n), yMap(Math.max(0, rowBase.balance)), '#9fb3c8');
+        if (rowWith) drawDot(xMap(rowWith.n), yMap(Math.max(0, rowWith.balance)), '#4fc3f7');
+    
+        const fmtCurrency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+        const d = (rowWith?.date || rowBase?.date) ? (rowWith?.date ?? rowBase?.date) : null;
+        const label = d ? d.toISOString().slice(0,10) : `Payment #${hoverN}`;
+        const baseBal = rowBase ? Math.max(0, rowBase.balance) : 0;
+        const withBal = rowWith ? Math.max(0, rowWith.balance) : 0;
+        const delta = baseBal - withBal;
+    
+        tip.hidden = false;
+        tip.innerHTML = `
+          <div class="muted">${label}</div>
+          <div><strong>With extras:</strong> ${fmtCurrency.format(withBal)}</div>
+          <div><strong>Baseline:</strong> ${fmtCurrency.format(baseBal)}</div>
+          ${rowWith && rowBase ? `<div class="delta">Δ balance (baseline − with-extras): ${fmtCurrency.format(delta)}</div>` : ''}
+        `;
+    
+        const wrapRect = wrap.getBoundingClientRect();
+        let left = e.clientX - wrapRect.left + 14;
+        let top  = e.clientY - wrapRect.top + 14;
+        const tipW = tip.offsetWidth, tipH = tip.offsetHeight;
+        if (left + tipW > wrapRect.width - 8) left = Math.max(8, wrapRect.width - tipW - 8);
+        if (top + tipH > wrapRect.height - 8) top = Math.max(8, wrapRect.height - tipH - 8);
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
+      }
+      function onLeave() {
+        ctx.putImageData(baseImage, 0, 0);
+        tip.hidden = true;
+      }
+      if (canvas._hoverHandlers) {
+        canvas.removeEventListener('mousemove', canvas._hoverHandlers.move);
+        canvas.removeEventListener('mouseleave', canvas._hoverHandlers.leave);
+      }
+      canvas.addEventListener('mousemove', onMove);
+      canvas.addEventListener('mouseleave', onLeave);
+      canvas._hoverHandlers = { move: onMove, leave: onLeave };
+    }
+
+  function exportCSV(tableEl) {
+    const rows = [...tableEl.querySelectorAll('tr')].map(tr =>
+      [...tr.children].map(td => `"${td.textContent.replaceAll('"','""')}"`).join(',')
+    ).join('\n');
+    const blob = new Blob([rows], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'amortization.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ---------- Wire up UI ----------
+  const $ = (id) => document.getElementById(id);
+  const form = $('calcForm');
+  const lumpsTbody = document.querySelector('#lumpTable tbody');
+
+  function setModeUI(mode) {
+    const isCustom = mode === 'custom';
+    $('termWrap').classList.toggle('hidden', isCustom);
+    $('payWrap').classList.toggle('hidden', !isCustom);
+  }
+
+  // Mode radios
+  [...document.querySelectorAll('input[name="mode"]')].forEach(r =>
+    r.addEventListener('change', (e) => setModeUI(e.target.value))
+  );
+
+  $('addLump').addEventListener('click', () => addLumpRow());
+
+  form.addEventListener('reset', () => {
+    lumpsTbody.innerHTML = '';
+    $('results').hidden = true;
+    $('announce').textContent = 'Cleared.';
+    setTimeout(() => { // keep the default mode UI consistent after reset
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      setModeUI(mode);
+    });
+  });
+
+  $('exportBtn').addEventListener('click', () => exportCSV($('amortTable')));
+
+  $('calcBtn').addEventListener('click', () => {
+    // Inputs
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    const P = Number($('principal').value);
+    const r = Number($('rate').value);
+    const termYears = Number($('termYears').value);
+    const userPay = Number($('userPayment').value);
+    const extraMonthly = Number($('extraMonthly').value) || 0;
+    const startDate = $('startDate').value ? new Date($('startDate').value + 'T12:00:00') : null;
+    const lumps = parseLumps();
+
+    // Validation
+    $('principalErr').textContent = (P > 0) ? '' : 'Enter a positive loan amount.';
+    $('rateErr').textContent = (r >= 0) ? '' : 'Rate cannot be negative.';
+    $('termErr').textContent = '';
+    $('payErr').textContent = '';
+    if (!(P > 0 && r >= 0)) return;
+
+    let termMonths;
+    if (mode === 'term') {
+      if (!(termYears > 0)) { $('termErr').textContent = 'Enter a positive term in years.'; return; }
+      termMonths = Math.round(termYears * 12);
+    } else {
+      if (!(userPay > 0)) { $('payErr').textContent = 'Enter a positive monthly payment.'; return; }
+    }
+
+    // Optional warning if date-based lumps but no start date
+    let warn = '';
+    if (!$('startDate').value && lumps.some(L => L.kind === 'date')) {
+      warn = ' Note: Date-based lump sums require a Start date; those entries were ignored.';
+    }
+
+    // Baseline (no extras)
+    const base = buildSchedule({
+      P, ratePct: r, startDate, mode, termMonths, userPay,
+      extraMonthly: 0, lumps: []
+    });
+    if (base.error) { $('payErr').textContent = base.error; return; }
+
+    // With extras (monthly + lumps)
+    const withX = buildSchedule({
+      P, ratePct: r, startDate, mode, termMonths, userPay,
+      extraMonthly, lumps
+    });
+    if (withX.error) { $('payErr').textContent = withX.error; return; }
+
+    // Render KPIs
+    $('kpiPayment').textContent = fmtCurrency.format(base.payment);
+    $('kpiInterestBase').textContent = fmtCurrency.format(base.totalInterest);
+    $('kpiInterestWith').textContent = fmtCurrency.format(withX.totalInterest);
+    $('kpiSaved').textContent = fmtCurrency.format(Math.max(0, base.totalInterest - withX.totalInterest));
+    $('kpiMonthsSaved').textContent = (base.months - withX.months) + ' mo';
+    if (withX.schedule.at(-1)?.date) {
+      const d = withX.schedule.at(-1).date.toISOString().slice(0,10);
+      $('kpiPayoff').textContent = d;
+    } else {
+      $('kpiPayoff').textContent = '—';
+    }
+
+    // Render table & chart for "with extras" schedule
+    renderTable($('amortTable').querySelector('tbody'), withX.schedule);
+    drawChart($('chart'), withX.schedule, base.schedule);
+
+    $('results').hidden = false;
+    $('announce').textContent = 'Calculation complete. (Payments are capped each month at interest + principal.)' + warn;
+  });
+
+  // Seed UI
+  addLumpRow({ type: 'n' }); // start with a Payment # row by default
+  setModeUI('term');
+})();
+</script>
+</body>
