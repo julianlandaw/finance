@@ -386,13 +386,14 @@ def main():
     
     for symbol in symbols:
         print(symbol)
+        shares = np.array(df[df["Symbol"] == symbol]["Quantity"])
+            totshares = 0
+            for i in range(len(shares)):
+                totshares = totshares + float(shares[i])
         try:
             ticker = yf.Ticker(symbol)
             info = ticker.info  # Fetch metadata
             shares = np.array(df[df["Symbol"] == symbol]["Quantity"])
-            totshares = 0
-            for i in range(len(shares)):
-                totshares = totshares + float(shares[i])
             currentPrice = info.get("currentPrice", "NA")
             totalprice = totshares*float(currentPrice)
             
@@ -418,7 +419,7 @@ def main():
                 "Symbol": symbol,
                 "shortName": "NA",
                 "currentPrice": "NA",
-                "Shares": "NA",
+                "Shares": np.round(totshares,2),
                 "Total_Amount": "NA",
                 "PE_Ratio": "NA",
                 "Beta": "NA",
