@@ -387,9 +387,9 @@ def main():
     for symbol in symbols:
         print(symbol)
         shares = np.array(df[df["Symbol"] == symbol]["Quantity"])
-            totshares = 0
-            for i in range(len(shares)):
-                totshares = totshares + float(shares[i])
+        totshares = 0
+        for i in range(len(shares)):
+            totshares = totshares + float(shares[i])
         try:
             ticker = yf.Ticker(symbol)
             info = ticker.info  # Fetch metadata
