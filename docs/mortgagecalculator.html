@@ -3,226 +3,563 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mortgage Payoff Calculator</title>
+  <title>Mortgage Payoff Calculator+</title>
+  <meta name="color-scheme" content="dark light" />
   <style>
-    :root {
-      --bg: #0b0f14; --card: #121820; --ink: #e8f0ff;
-      --muted: #9fb3c8; --accent: #4fc3f7; --good: #7ee081; --warn: #f7b84f;
-      --border: #1f2a37; --bad: #ff6b6b;
+    :root{
+      --bg: #0b0f14;
+      --panel: rgba(18,24,32,.82);
+      --panel2:#0e141b;
+      --ink:#e8f0ff;
+      --muted:#9fb3c8;
+      --accent:#4fc3f7;
+      --accent2:#a78bfa;
+      --good:#7ee081;
+      --warn:#f7b84f;
+      --bad:#ff6b6b;
+      --border: rgba(255,255,255,.08);
+      --shadow: 0 14px 40px rgba(0,0,0,.42);
+      --ring: 0 0 0 3px rgba(79,195,247,.28);
+      --radius: 16px;
+      --radius-sm: 12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
-    html, body { background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    main { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
-    h1 { font-size: 1.6rem; margin: 0 0 1rem; }
-    .grid { display: grid; gap: 1rem; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
-    form .grid { grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
-    label { display:block; font-weight:600; margin-bottom: .35rem; }
-    input[type="number"], input[type="date"] {
-      width: 100%; padding:.6rem .7rem; border-radius: 8px; border:1px solid var(--border);
-      background:#0e141b; color:var(--ink);
+    [data-theme="light"]{
+      --bg:#f6f8fb;
+      --panel: rgba(255,255,255,.85);
+      --panel2:#ffffff;
+      --ink:#0b1220;
+      --muted:#4b5a70;
+      --accent:#2563eb;
+      --accent2:#7c3aed;
+      --good:#1f9d55;
+      --warn:#b45309;
+      --bad:#b91c1c;
+      --border: rgba(15,23,42,.12);
+      --shadow: 0 14px 40px rgba(2,6,23,.12);
+      --ring: 0 0 0 3px rgba(37,99,235,.20);
     }
-    select {
-      width: 100%;
-      padding: .6rem .7rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: #0e141b;
-      color: var(--ink);
-    }
-    fieldset { border: none; padding:0; margin:0; }
-    legend { font-weight:700; margin-bottom:.5rem; }
-    .actions { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem; }
-    button {
-      background: #243447; color: var(--ink); border: 1px solid var(--border);
-      padding:.6rem .9rem; border-radius: 8px; cursor: pointer;
-    }
-    button.primary { background: #2563eb; border-color:#2563eb; }
-    button.ghost { background: transparent; }
-    button.danger { background:#8b0000; border-color:#8b0000; }
-    .hint { color: var(--muted); font-size:.9rem; }
-    .kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:1rem; margin-top:1rem; }
-    .kpi { background: var(--card); border:1px solid var(--border); border-radius: 10px; padding:1rem; }
-    .kpi h3 { margin:.2rem 0; font-size:.95rem; color:var(--muted); }
-    .kpi p { font-size:1.2rem; margin:.1rem 0; }
-    canvas { width: 100%; height: 280px; background: #0e141b; border:1px solid var(--border); border-radius:10px; }
-    table { width:100%; border-collapse: collapse; margin-top:1rem; }
-    caption { text-align:left; color:var(--muted); margin-bottom:.5rem; }
-    th, td { border-bottom:1px solid var(--border); padding:.5rem .6rem; text-align:right; white-space:nowrap; }
-    th[scope="col"], td.label { text-align:left; }
-    .sr-only {
-      position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
-    }
-    .error { color: var(--bad); margin-top:.25rem; font-size:.9rem; }
-    @media (max-width: 640px) {
-      table { display:block; overflow:auto; }
-    }
-    .inline { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
-    .muted { color: var(--muted); }
-    .hidden { display:none !important; }
 
-    /* Tooltip + chart wrapper */
-    .chart-wrap { position: relative; }
-    .tooltip {
-      position: absolute;
-      background: rgba(18,24,32,0.95);
-      color: var(--ink);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: .5rem .6rem;
-      pointer-events: none;
-      font-size: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,.35);
-      max-width: 260px;
-      z-index: 2;
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 600px at 15% 10%, rgba(79,195,247,.18), transparent 55%),
+        radial-gradient(900px 520px at 85% 0%, rgba(167,139,250,.16), transparent 52%),
+        radial-gradient(900px 520px at 70% 85%, rgba(126,224,129,.12), transparent 52%),
+        var(--bg);
+      color:var(--ink);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      line-height:1.4;
     }
-    .tooltip .muted { color: var(--muted); }
-    .tooltip .delta { color: var(--good); }
+
+    a{color:var(--accent)}
+
+    .app{
+      max-width: 1200px;
+      margin: 22px auto;
+      padding: 0 14px 28px;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin: 8px 0 16px;
+    }
+    .title{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width: 240px;
+    }
+    .logo{
+      width:44px;height:44px;
+      border-radius:14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: var(--shadow);
+      display:grid;place-items:center;
+      color:white;font-weight:900;
+      letter-spacing:.5px;
+    }
+    h1{font-size: 1.25rem; margin:0}
+    .sub{color:var(--muted); font-size:.92rem; margin-top:2px}
+
+    .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+
+    .pill{
+      display:flex; align-items:center; gap:8px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 10px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .btn{
+      appearance:none;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color: var(--ink);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight: 650;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.09)}
+    .btn:active{transform: translateY(0px)}
+    .btn:focus-visible{outline:none; box-shadow: var(--ring)}
+
+    .btn.primary{
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: transparent;
+      color: white;
+    }
+    .btn.primary:hover{filter: brightness(1.02)}
+    .btn.ghost{background: transparent}
+    .btn.danger{background: rgba(255,107,107,.14); border-color: rgba(255,107,107,.35); color: var(--ink)}
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 14px;
+      align-items:start;
+    }
+
+    @media (max-width: 980px){
+      .grid{grid-template-columns: 1fr}
+    }
+
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding: 14px 16px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .card .hd h2{font-size:1rem;margin:0}
+    .card .bd{padding: 14px 16px}
+
+    .muted{color:var(--muted)}
+    .tiny{font-size:.85rem}
+
+    .form-grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+    }
+
+    .field{grid-column: span 6}
+    @media (max-width: 520px){
+      .field{grid-column: span 12}
+    }
+
+    label{display:flex; align-items:center; justify-content:space-between; gap:10px; font-weight:700; font-size:.92rem;}
+    .label-right{font-weight:650; color:var(--muted); font-size:.85rem; font-family: var(--mono)}
+
+    input[type="number"], input[type="date"], select{
+      width:100%;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      color: var(--ink);
+      margin-top: 6px;
+      outline:none;
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    input:focus, select:focus{box-shadow: var(--ring); border-color: rgba(79,195,247,.55)}
+
+    input[type="range"]{width:100%}
+    .range-row{display:flex; gap:10px; align-items:center; margin-top: 6px}
+
+    .seg{
+      display:flex;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow:hidden;
+      background: rgba(255,255,255,.04);
+    }
+    .seg button{
+      border:0; background:transparent; color:var(--muted);
+      padding: 10px 12px;
+      font-weight: 750;
+      cursor:pointer;
+    }
+    .seg button[aria-pressed="true"]{
+      color: var(--ink);
+      background: rgba(255,255,255,.12);
+    }
+
+    .help{margin-top: 6px; color: var(--muted); font-size: .86rem}
+    .error{margin-top: 6px; color: var(--bad); font-size: .9rem}
+
+    details{border:1px solid var(--border); border-radius: 14px; padding: 10px 12px; background: rgba(255,255,255,.04)}
+    details + details{margin-top: 10px}
+    summary{cursor:pointer; font-weight: 800}
+
+    table{width:100%; border-collapse: collapse; font-variant-numeric: tabular-nums;}
+    th, td{border-bottom:1px solid var(--border); padding: 10px 10px; text-align:right; white-space:nowrap}
+    th.label, td.label{text-align:left}
+    thead th{color:var(--muted); font-weight: 800; font-size:.86rem; letter-spacing:.02em}
+    tbody tr:hover{background: rgba(255,255,255,.04)}
+
+    .kpis{display:grid; grid-template-columns: repeat(12, 1fr); gap: 12px}
+    .kpi{grid-column: span 4; padding: 12px 12px; border:1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,.04)}
+    @media (max-width: 840px){.kpi{grid-column: span 6}}
+    @media (max-width: 520px){.kpi{grid-column: span 12}}
+    .kpi .k{color:var(--muted); font-size:.86rem; font-weight:800}
+    .kpi .v{font-size:1.12rem; font-weight: 900; margin-top:4px}
+
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .spacer{flex:1}
+
+    .tag{
+      font-family: var(--mono);
+      font-size: .82rem;
+      color: var(--muted);
+      border:1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.03);
+    }
+
+    .canvas-wrap{position:relative}
+    canvas{
+      width:100%;
+      height: 290px;
+      border:1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(14,20,27,.75);
+    }
+    [data-theme="light"] canvas{background: rgba(255,255,255,.85)}
+
+    .tooltip{
+      position:absolute;
+      pointer-events:none;
+      background: rgba(18,24,32,.96);
+      border:1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 10px;
+      box-shadow: var(--shadow);
+      max-width: 280px;
+      font-size: 12px;
+      z-index: 5;
+    }
+
+    .right-col{display:grid; gap: 14px}
+
+    .sticky-actions{display:flex; gap: 10px; flex-wrap:wrap}
+
+    .sr-only{
+      position:absolute;
+      width:1px;height:1px;
+      padding:0;margin:-1px;
+      overflow:hidden;clip:rect(0,0,0,0);
+      white-space:nowrap;border:0;
+    }
+
+    .scroll-x{overflow:auto}
+    .hidden{display:none !important}
+
+    .toast{min-height: 20px}
   </style>
 </head>
 <body>
-<main>
-  <h1>Mortgage Payoff Calculator</h1>
-
-  <form id="calcForm" class="card" novalidate>
-    <fieldset class="grid">
-      <legend class="sr-only">Loan inputs</legend>
-
-      <div class="inline" role="radiogroup" aria-label="Payment mode">
-        <strong>Payment mode:</strong>
-        <label><input type="radio" name="mode" value="term" checked /> Compute from term</label>
-        <label><input type="radio" name="mode" value="custom" /> Use custom monthly payment</label>
+  <div class="app" id="app">
+    <header>
+      <div class="title">
+        <div class="logo" aria-hidden="true">M+</div>
+        <div>
+          <h1>Mortgage Payoff Calculator+</h1>
+          <div class="sub">Cleaner UI • Extra payments • Escrow estimate • Scenario share</div>
+        </div>
       </div>
 
-      <div>
-        <label for="principal">Loan amount (USD)</label>
-        <input id="principal" name="principal" type="number" inputmode="decimal" min="1000" step="0.01" required placeholder="e.g., 450000" />
-        <div id="principalErr" class="error" aria-live="polite"></div>
+      <div class="toolbar">
+        <div class="pill" role="group" aria-label="Theme and utilities">
+          <button class="btn" id="themeBtn" type="button" title="Toggle light/dark">🌓 Theme</button>
+          <button class="btn" id="copyLinkBtn" type="button" title="Copy a shareable link">🔗 Copy link</button>
+          <button class="btn" id="saveBtn" type="button" title="Save inputs locally">💾 Save</button>
+          <button class="btn" id="loadBtn" type="button" title="Load saved inputs">📂 Load</button>
+        </div>
       </div>
+    </header>
 
-      <div>
-        <label for="rate">Annual interest rate (%)</label>
-        <input id="rate" name="rate" type="number" inputmode="decimal" min="0" step="0.001" required placeholder="e.g., 6.75" />
-        <div id="rateErr" class="error" aria-live="polite"></div>
-      </div>
+    <div class="grid">
+      <!-- LEFT: Inputs -->
+      <section class="card" aria-labelledby="inputsTitle">
+        <div class="hd">
+          <h2 id="inputsTitle">Inputs</h2>
+          <div class="seg" role="group" aria-label="Payment mode">
+            <button type="button" id="modeTerm" aria-pressed="true">From term</button>
+            <button type="button" id="modeCustom" aria-pressed="false">Custom payment</button>
+          </div>
+        </div>
 
-      <div id="termWrap">
-        <label for="termYears">Term (years)</label>
-        <input id="termYears" name="termYears" type="number" inputmode="decimal" min="1" step="0.5" required placeholder="e.g., 30" />
-        <div class="hint">Calculates standard monthly payment for the given term.</div>
-        <div id="termErr" class="error" aria-live="polite"></div>
-      </div>
+        <div class="bd">
+          <form id="calcForm" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="principal">Loan amount <span class="label-right" id="principalPretty">—</span></label>
+                <input id="principal" name="principal" type="number" inputmode="decimal" min="1000" step="0.01" placeholder="e.g., 450000" required />
+                <div class="error" id="principalErr" aria-live="polite"></div>
+              </div>
 
-      <div id="payWrap" class="hidden">
-        <label for="userPayment">Monthly payment (USD)</label>
-        <input id="userPayment" name="userPayment" type="number" inputmode="decimal" min="1" step="0.01" placeholder="e.g., 2800" />
-        <div id="payErr" class="error" aria-live="polite"></div>
-        <div class="hint">In custom mode, payoff time is computed from the amount you enter.</div>
-      </div>
+              <div class="field">
+                <label for="rate">Annual rate (%) <span class="label-right" id="ratePretty">—</span></label>
+                <input id="rate" name="rate" type="number" inputmode="decimal" min="0" step="0.001" placeholder="e.g., 6.75" required />
+                <div class="range-row">
+                  <input id="rateRange" type="range" min="0" max="15" step="0.05" value="6.75" aria-label="Rate slider" />
+                  <span class="tag" id="rateTag">6.75%</span>
+                </div>
+                <div class="error" id="rateErr" aria-live="polite"></div>
+              </div>
 
-      <div>
-        <label for="startDate">Start date (optional)</label>
-        <input id="startDate" name="startDate" type="date" />
-        <div class="hint">Used to compute exact payoff date and schedule dates.</div>
-      </div>
+              <div class="field" id="termWrap">
+                <label for="termYears">Term (years) <span class="label-right" id="termPretty">—</span></label>
+                <input id="termYears" name="termYears" type="number" inputmode="decimal" min="1" step="0.5" placeholder="e.g., 30" required />
+                <div class="range-row">
+                  <input id="termRange" type="range" min="5" max="40" step="0.5" value="30" aria-label="Term slider" />
+                  <span class="tag" id="termTag">30y</span>
+                </div>
+                <div class="help">Computes the standard payment for the selected term.</div>
+                <div class="error" id="termErr" aria-live="polite"></div>
+              </div>
 
-      <div>
-        <label for="extraMonthly">Extra principal per month (optional)</label>
-        <input id="extraMonthly" name="extraMonthly" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 200" />
-      </div>
-    </fieldset>
+              <div class="field hidden" id="payWrap">
+                <label for="userPayment">Monthly payment <span class="label-right" id="payPretty">—</span></label>
+                <input id="userPayment" name="userPayment" type="number" inputmode="decimal" min="1" step="0.01" placeholder="e.g., 2800" />
+                <div class="error" id="payErr" aria-live="polite"></div>
+                <div class="help">In custom mode, payoff time is computed from the amount you enter.</div>
+              </div>
 
-    <fieldset style="margin-top:1rem;">
-      <legend>Variable lump sum payments</legend>
-      <div class="hint">Apply additional principal on specific dates (e.g., bonus, tax refund) or by payment number.</div>
-      <table id="lumpTable" aria-describedby="lumpHelp">
-        <caption id="lumpHelp" class="sr-only">Add rows of type/date-or-number and amount for lump-sum principal payments.</caption>
-        <thead>
-          <tr>
-            <th scope="col" class="label">Type</th>
-            <th scope="col" class="label">Month (date or #)</th>
-            <th scope="col">Amount (USD)</th>
-            <th scope="col"> </th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div class="actions">
-        <button type="button" id="addLump">+ Add lump sum</button>
-      </div>
-    </fieldset>
+              <div class="field">
+                <label for="startDate">Start date (optional)</label>
+                <input id="startDate" name="startDate" type="date" />
+                <div class="help">Used to compute payoff date and schedule dates (recommended).</div>
+              </div>
 
-    <div class="actions">
-      <button type="button" class="primary" id="calcBtn">Calculate</button>
-      <button type="reset" class="ghost">Clear</button>
-      <button type="button" id="exportBtn" title="Export amortization table to CSV">Export CSV</button>
+              <div class="field">
+                <label for="extraMonthly">Extra principal / month (optional) <span class="label-right" id="extraPretty">—</span></label>
+                <input id="extraMonthly" name="extraMonthly" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 200" />
+              </div>
+            </div>
+
+            <div style="margin-top:12px"></div>
+
+            <details>
+              <summary>Escrow estimate (optional)</summary>
+              <div class="form-grid" style="margin-top:10px">
+                <div class="field">
+                  <label for="taxAnnual">Property tax / year</label>
+                  <input id="taxAnnual" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 7200" />
+                  <div class="help">Adds estimated monthly escrow to your out-of-pocket payment.</div>
+                </div>
+                <div class="field">
+                  <label for="insAnnual">Home insurance / year</label>
+                  <input id="insAnnual" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 1800" />
+                </div>
+                <div class="field">
+                  <label for="hoaMonthly">HOA / month</label>
+                  <input id="hoaMonthly" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 150" />
+                </div>
+                <div class="field">
+                  <label for="pmiMonthly">PMI / month</label>
+                  <input id="pmiMonthly" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 120" />
+                  <div class="help">If you don’t have PMI, leave at 0.</div>
+                </div>
+              </div>
+            </details>
+
+            <details>
+              <summary>Extra payment strategy (optional)</summary>
+              <div class="form-grid" style="margin-top:10px">
+                <div class="field">
+                  <label for="payFreq">Payment frequency</label>
+                  <select id="payFreq">
+                    <option value="monthly" selected>Monthly (12/yr)</option>
+                    <option value="biweekly">Biweekly (26/yr, split payment)</option>
+                    <option value="accel_biweekly">Accelerated biweekly (26 half-payments ≈ 13 full payments/yr)</option>
+                  </select>
+                  <div class="help">Biweekly options can reduce payoff time even without extra principal.</div>
+                </div>
+                <div class="field">
+                  <label for="annualExtra">Annual extra (once per year)</label>
+                  <input id="annualExtra" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 1000" />
+                  <div class="help">Applied each year in the same month as your start date (or payment #12, #24, … without a date).</div>
+                </div>
+                <div class="field">
+                  <label for="extraStartMonth">Start extra payments at month #</label>
+                  <input id="extraStartMonth" type="number" inputmode="numeric" min="1" step="1" placeholder="e.g., 1" />
+                  <div class="help">Delay extra payments (useful for planned raises).</div>
+                </div>
+                <div class="field">
+                  <label for="extraEndMonth">Stop extras at month #</label>
+                  <input id="extraEndMonth" type="number" inputmode="numeric" min="1" step="1" placeholder="e.g., 120" />
+                  <div class="help">Leave blank to continue until payoff.</div>
+                </div>
+              </div>
+            </details>
+
+            <details open>
+              <summary>Lump sums (optional)</summary>
+              <div class="help">Apply additional principal on specific dates (bonus, tax refund) or by payment number.</div>
+              <div class="scroll-x" style="margin-top:10px">
+                <table id="lumpTable" aria-describedby="lumpHelp">
+                  <caption id="lumpHelp" class="sr-only">Rows of type/date-or-number and amount for lump-sum principal payments.</caption>
+                  <thead>
+                    <tr>
+                      <th class="label">Type</th>
+                      <th class="label">Month (date or #)</th>
+                      <th>Amount</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="row" style="margin-top:10px">
+                <button type="button" id="addLump" class="btn">+ Add lump sum</button>
+                <span class="spacer"></span>
+                <span class="muted tiny">Tip: Date-based lumps require a start date.</span>
+              </div>
+            </details>
+
+            <div class="row" style="margin-top:14px">
+              <div class="sticky-actions">
+                <button type="button" class="btn primary" id="calcBtn">Calculate</button>
+                <button type="reset" class="btn ghost">Clear</button>
+                <button type="button" class="btn" id="exportBtn" title="Export amortization table to CSV">Export CSV</button>
+              </div>
+              <span class="spacer"></span>
+              <span class="tag" id="statusTag">Ready</span>
+            </div>
+
+            <div class="toast muted tiny" id="announce" role="status" aria-live="polite" style="margin-top:10px"></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- RIGHT: Results -->
+      <section class="right-col" aria-label="Results">
+        <div class="card" id="resultsCard" hidden>
+          <div class="hd">
+            <h2>Results</h2>
+            <div class="row">
+              <span class="tag" id="scenarioTag">Baseline vs Extras</span>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="kpis">
+              <div class="kpi"><div class="k">Scheduled payment</div><div class="v" id="kpiPayment">—</div><div class="muted tiny">Principal + interest</div></div>
+              <div class="kpi"><div class="k">Total interest (baseline)</div><div class="v" id="kpiInterestBase">—</div><div class="muted tiny">No extras</div></div>
+              <div class="kpi"><div class="k">Total interest (with extras)</div><div class="v" id="kpiInterestWith">—</div><div class="muted tiny">Including strategy + lumps</div></div>
+              <div class="kpi"><div class="k">Interest saved</div><div class="v" id="kpiSaved" style="color:var(--good)">—</div><div class="muted tiny">Baseline − extras</div></div>
+              <div class="kpi"><div class="k">Payoff date</div><div class="v" id="kpiPayoff">—</div><div class="muted tiny">Requires start date</div></div>
+              <div class="kpi"><div class="k">Time saved</div><div class="v" id="kpiMonthsSaved">—</div><div class="muted tiny">Months saved</div></div>
+            </div>
+
+            <div class="row" style="margin-top:12px">
+              <span class="tag" id="kpiOutflow">Estimated monthly outflow: —</span>
+              <span class="tag" id="kpiEscrow">Escrow estimate: —</span>
+              <span class="spacer"></span>
+              <button type="button" class="btn" id="toggleTableBtn">Toggle table</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="chartCard" hidden>
+          <div class="hd">
+            <h2>Charts</h2>
+            <span class="muted tiny">Hover for details</span>
+          </div>
+          <div class="bd">
+            <div class="canvas-wrap">
+              <canvas id="balChart" width="1100" height="320" aria-label="Remaining balance: baseline vs with extras" role="img"></canvas>
+              <div id="chartTooltip" class="tooltip" hidden></div>
+            </div>
+            <div style="height:12px"></div>
+            <div class="canvas-wrap">
+              <canvas id="piChart" width="1100" height="260" aria-label="Principal vs interest per year" role="img"></canvas>
+            </div>
+            <div class="help">The second chart shows an annual summary (requires start date; otherwise it groups every 12 payments).</div>
+          </div>
+        </div>
+
+        <div class="card" id="tableCard" hidden>
+          <div class="hd">
+            <h2>Amortization schedule</h2>
+            <div class="row">
+              <label class="tiny muted" for="tableFilter">Filter:</label>
+              <select id="tableFilter" class="tiny" style="padding:8px 10px; border-radius: 12px">
+                <option value="all" selected>All payments</option>
+                <option value="year">Yearly summary</option>
+                <option value="milestones">Milestones (every 12 months)</option>
+              </select>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="scroll-x">
+              <table id="amortTable">
+                <thead>
+                  <tr>
+                    <th class="label">#</th>
+                    <th class="label">Date</th>
+                    <th>Payment</th>
+                    <th>Interest</th>
+                    <th>Principal</th>
+                    <th>Extra</th>
+                    <th>Cum. interest</th>
+                    <th>Balance</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd"><h2>Notes</h2></div>
+          <div class="bd">
+            <ul class="muted tiny" style="margin:0; padding-left: 18px">
+              <li>This tool estimates amortization. Real loans can differ due to daily interest accrual, escrow rules, rounding, and servicing conventions.</li>
+              <li>Extras are applied to principal after the scheduled payment, and never exceed remaining principal for the month.</li>
+              <li>Biweekly modes simulate 26 payments/year; “accelerated biweekly” approximates 13 full payments/year.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </div>
-    <div id="announce" role="status" aria-live="polite" class="hint" style="margin-top:.5rem;"></div>
-  </form>
-
-  <section id="results" hidden>
-    <div class="kpis">
-      <div class="kpi">
-        <h3>Monthly payment</h3>
-        <p id="kpiPayment">—</p>
-      </div>
-      <div class="kpi">
-        <h3>Total interest (no extras)</h3>
-        <p id="kpiInterestBase">—</p>
-      </div>
-      <div class="kpi">
-        <h3>Total interest (with extras)</h3>
-        <p id="kpiInterestWith">—</p>
-      </div>
-      <div class="kpi">
-        <h3>Interest saved</h3>
-        <p id="kpiSaved" style="color:var(--good)">—</p>
-      </div>
-      <div class="kpi">
-        <h3>Payoff date</h3>
-        <p id="kpiPayoff">—</p>
-      </div>
-      <div class="kpi">
-        <h3>Months saved</h3>
-        <p id="kpiMonthsSaved">—</p>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:1rem;">
-      <h2 style="font-size:1.1rem;margin:.2rem 0 .8rem;">Remaining balance over time</h2>
-      <div class="chart-wrap">
-        <canvas id="chart" width="1000" height="300"
-          aria-label="Line chart of remaining balance: baseline (no extras) versus with extras"
-          role="img"></canvas>
-        <div id="chartTooltip" class="tooltip" hidden></div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:1rem;">
-      <table id="amortTable">
-        <caption>Amortization schedule</caption>
-        <thead>
-          <tr>
-            <th scope="col" class="label">#</th>
-            <th scope="col" class="label">Date</th>
-            <th scope="col">Payment</th>
-            <th scope="col">Interest</th>
-            <th scope="col">Principal</th>
-            <th scope="col">Extra</th>
-            <th scope="col">Cumulative interest</th>
-            <th scope="col">Remaining balance</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-</main>
+  </div>
 
 <script>
 (() => {
-  // ---------- Utilities ----------
+  // ---------- Formatting & helpers ----------
   const fmtCurrency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
-  const toCents = (x) => Math.round((+x + Number.EPSILON) * 100) / 100;
+  const fmt0 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+  const toCents = (x) => Math.round(((+x || 0) + Number.EPSILON) * 100) / 100;
+  const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+  const $ = (id) => document.getElementById(id);
+
+  function parseNum(id, fallback=0){
+    const v = Number($(id).value);
+    return Number.isFinite(v) ? v : fallback;
+  }
 
   function monthlyPayment(P, annualRatePct, nMonths) {
     const r = (annualRatePct / 100) / 12;
@@ -231,153 +568,231 @@
     return toCents(P * r * A / (A - 1));
   }
 
-  function addLumpRow({ type = 'date', dateVal = '', nVal = '', amtVal = '' } = {}) {
+  function addMonthsUTC(date, months){
+    const d = new Date(date.getTime());
+    d.setUTCMonth(d.getUTCMonth() + months);
+    return d;
+  }
+
+  function yyyymm(d){
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+  }
+
+  // ---------- Lump sum table ----------
+  function addLumpRow({ type='date', dateVal='', nVal='', amtVal='' }={}){
     const tbody = document.querySelector('#lumpTable tbody');
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="label">
         <select class="lump-type" aria-label="Lump sum type">
-          <option value="date" ${type === 'date' ? 'selected' : ''}>Date</option>
-          <option value="n" ${type === 'n' ? 'selected' : ''}>Payment #</option>
+          <option value="date" ${type==='date'?'selected':''}>Date</option>
+          <option value="n" ${type==='n'?'selected':''}>Payment #</option>
         </select>
       </td>
       <td class="label">
         <input class="lump-date" type="date" value="${dateVal}" />
-        <input class="lump-n ${type === 'date' ? 'hidden' : ''}" type="number" inputmode="numeric" min="1" step="1" placeholder="e.g., 24" value="${nVal}" />
+        <input class="lump-n" type="number" inputmode="numeric" min="1" step="1" placeholder="e.g., 24" value="${nVal}" />
       </td>
       <td>
         <input class="lump-amt" type="number" inputmode="decimal" min="0" step="0.01" value="${amtVal}" />
       </td>
       <td>
-        <button type="button" class="danger">Remove</button>
+        <button type="button" class="btn danger" title="Remove">Remove</button>
       </td>
     `;
-
-    const select = tr.querySelector('select.lump-type');
-    const dateInput = tr.querySelector('input.lump-date');
-    const nInput = tr.querySelector('input.lump-n');
-
-    function syncVisibility() {
-      const isDate = select.value === 'date';
+    const sel = tr.querySelector('.lump-type');
+    const dateInput = tr.querySelector('.lump-date');
+    const nInput = tr.querySelector('.lump-n');
+    const sync = () => {
+      const isDate = sel.value === 'date';
       dateInput.classList.toggle('hidden', !isDate);
       nInput.classList.toggle('hidden', isDate);
-    }
-    select.addEventListener('change', syncVisibility);
-
-    tr.querySelector('button.danger').addEventListener('click', () => tr.remove());
-
+    };
+    sel.addEventListener('change', sync);
+    tr.querySelector('button').addEventListener('click', () => tr.remove());
     tbody.appendChild(tr);
-    syncVisibility();
+    sync();
   }
 
-  function parseLumps() {
+  function parseLumps(){
     const rows = [...document.querySelectorAll('#lumpTable tbody tr')];
     return rows.map(tr => {
       const type = tr.querySelector('select.lump-type')?.value;
       const amt = Number(tr.querySelector('input.lump-amt')?.value) || 0;
-
-      if (type === 'date') {
+      if (amt <= 0) return null;
+      if (type === 'date'){
         const dVal = tr.querySelector('input.lump-date')?.value || '';
-        const d = dVal ? new Date(dVal + 'T12:00:00') : null;
-        return (d && amt > 0) ? { kind: 'date', date: d, amount: toCents(amt) } : null;
-      } else {
-        const nVal = Number(tr.querySelector('input.lump-n')?.value);
-        return (Number.isFinite(nVal) && nVal >= 1 && amt > 0)
-          ? { kind: 'n', n: Math.floor(nVal), amount: toCents(amt) }
-          : null;
+        const d = dVal ? new Date(dVal + 'T12:00:00Z') : null;
+        return d ? ({ kind:'date', date:d, amount: toCents(amt) }) : null;
       }
+      const nVal = Number(tr.querySelector('input.lump-n')?.value);
+      if (!Number.isFinite(nVal) || nVal < 1) return null;
+      return { kind:'n', n: Math.floor(nVal), amount: toCents(amt) };
     }).filter(Boolean);
   }
 
+  // ---------- Schedules ----------
   /**
    * Build amortization schedule.
-   * Modes:
-   *  - { mode:'term', termMonths }  -> payment computed from term
-   *  - { mode:'custom', userPay }   -> use provided monthly payment
-   * Capping rule: total paid in any month (scheduled + extras) never exceeds interest + remaining principal.
+   * Supports:
+   * - mode 'term' => scheduled payment computed from termMonths
+   * - mode 'custom' => scheduled payment = userPay
+   * Extras:
+   * - extraMonthly (recurring)
+   * - annualExtra once per year
+   * - extraStartMonth / extraEndMonth gates recurring extra
+   * - lump sums by date (YYYY-MM) and/or by payment number
+   * Payment frequency:
+   * - monthly
+   * - biweekly (26 payments/year): modeled as 2 payments per month on average by using effective rate and periods
+   * - accel_biweekly: same periods but scheduled = monthlyPayment/2 per period
    */
-  function buildSchedule({ P, ratePct, startDate, mode, termMonths, userPay = 0, extraMonthly = 0, lumps = [] }) {
-    const r = (ratePct / 100) / 12;
-    const scheduledPay = mode === 'term'
-      ? monthlyPayment(P, ratePct, termMonths)
-      : toCents(userPay);
+  function buildSchedule({
+    P, ratePct, startDate, mode, termMonths, userPay=0,
+    extraMonthly=0, annualExtra=0, lumps=[],
+    payFreq='monthly', extraStartMonth=1, extraEndMonth=null
+  }){
+    // Frequency modeling: compute in "periods".
+    // Monthly: 12 periods/year, interest per period = APR/12.
+    // Biweekly: 26 periods/year, interest per period = APR/26.
+    // Accelerated biweekly: 26 half-payments/year, scheduled payment per period ≈ monthlyPayment/2.
 
-    if (mode === 'custom') {
-      const firstMonthInterest = toCents(P * r);
-      if (scheduledPay <= firstMonthInterest) {
-        return { error: `Your monthly payment (${fmtCurrency.format(scheduledPay)}) is ≤ first month's interest (${fmtCurrency.format(firstMonthInterest)}). Increase payment to amortize the loan.` };
-      }
+    const apr = ratePct / 100;
+
+    let periodsPerYear = 12;
+    let addPeriodDate = (d) => { const nd = new Date(d.getTime()); nd.setUTCMonth(nd.getUTCMonth()+1); return nd; };
+
+    if (payFreq === 'biweekly' || payFreq === 'accel_biweekly'){
+      periodsPerYear = 26;
+      addPeriodDate = (d) => new Date(d.getTime() + 14*24*3600*1000);
     }
 
-    // Pre-index lumps by YYYY-MM (date-based) and by payment number (n-based)
+    const r = apr / periodsPerYear;
+
+    // Scheduled payment per period
+    let scheduledPay = 0;
+    if (mode === 'term'){
+      if (!termMonths || termMonths <= 0) return { error: 'Missing term months.' };
+      if (payFreq === 'monthly'){
+        scheduledPay = monthlyPayment(P, ratePct, termMonths);
+      } else if (payFreq === 'biweekly'){
+        const years = termMonths / 12;
+        const nPeriods = Math.round(years * periodsPerYear);
+        scheduledPay = paymentForPeriods(P, r, nPeriods);
+      } else {
+        // accelerated biweekly convention: half of the monthly payment
+        scheduledPay = toCents(monthlyPayment(P, ratePct, termMonths) / 2);
+      }
+    } else {
+      // Custom mode input is interpreted as the TOTAL monthly payment.
+      // - monthly: scheduledPay = userPay
+      // - biweekly / accelerated: scheduled per period = userPay / 2
+      scheduledPay = toCents(userPay) * (payFreq === 'monthly' ? 1 : 0.5);
+    }
+
+    // Guard: payment must exceed first-period interest to amortize (when APR > 0)
+    const firstInterest = toCents(P * r);
+    if (scheduledPay <= firstInterest && apr > 0){
+      return { error: `Payment (${fmtCurrency.format(scheduledPay)}) is ≤ first period interest (${fmtCurrency.format(firstInterest)}). Increase payment to amortize.` };
+    }
+
+    // Index lumps
     const lumpByYYYYMM = new Map();
     const lumpByN = new Map();
-    for (const L of lumps) {
-      if (L.kind === 'date' && L.date) {
-        const key = `${L.date.getUTCFullYear()}-${String(L.date.getUTCMonth() + 1).padStart(2, '0')}`;
+    for (const L of lumps){
+      if (L.kind === 'date' && L.date){
+        const key = yyyymm(L.date);
         lumpByYYYYMM.set(key, toCents((lumpByYYYYMM.get(key) || 0) + L.amount));
-      } else if (L.kind === 'n' && L.n >= 1) {
+      } else if (L.kind === 'n'){
         lumpByN.set(L.n, toCents((lumpByN.get(L.n) || 0) + L.amount));
       }
     }
 
-    let balance = P;
+    let balance = toCents(P);
     let cumInt = 0;
     let date = startDate ? new Date(startDate.getTime()) : null;
     const schedule = [];
 
     let i = 0;
-    while (balance > 0 && i < 1000 * 12) { // safety guard
+    const safetyMax = 1000 * periodsPerYear;
+
+    // Track month to ensure date-based lumps apply ONCE per month in non-monthly modes
+    let lastMonthKey = null;
+    // Track annual extra so it applies once per year (prefer same month as startDate when available)
+    let lastAnnualYearApplied = null;
+
+    while (balance > 0 && i < safetyMax){
       i++;
       const interest = toCents(balance * r);
 
-      // Scheduled payment: allocate to interest first, then principal
+      // Scheduled payment allocation
       let iFromSched = Math.min(interest, scheduledPay);
       let pFromSched = toCents(Math.max(0, scheduledPay - iFromSched));
-      pFromSched = Math.min(pFromSched, balance); // cannot reduce beyond remaining principal
+      pFromSched = Math.min(pFromSched, balance);
 
-      // Lump sums for this month from date and/or payment number
+      // Extras window
+      const startAt = Number(extraStartMonth) || 1;
+      const endAt = extraEndMonth ? Number(extraEndMonth) : null;
+      const inExtraWindow = (i >= startAt) && (endAt ? i <= endAt : true);
+      const recurringExtra = inExtraWindow ? toCents(extraMonthly) : 0;
+
+      // Annual extra
+      let annual = 0;
+      if (annualExtra > 0){
+        if (date && startDate){
+          const startMonth = startDate.getUTCMonth();
+          const y = date.getUTCFullYear();
+          const monthMatches = date.getUTCMonth() === startMonth;
+          if (monthMatches && lastAnnualYearApplied !== y){
+            annual = toCents(annualExtra);
+            lastAnnualYearApplied = y;
+          }
+        } else {
+          if (i % periodsPerYear === 0) annual = toCents(annualExtra);
+        }
+      }
+
+      // Lump sums
       let lumpDate = 0;
-      if (date) {
-        const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-        lumpDate = toCents(lumpByYYYYMM.get(key) || 0);
+      if (date){
+        const key = yyyymm(date);
+        if (key !== lastMonthKey){
+          lumpDate = toCents(lumpByYYYYMM.get(key) || 0);
+          lastMonthKey = key;
+        }
       }
       const lumpN = toCents(lumpByN.get(i) || 0);
 
-      // Extras this month: recurring extra + lump sums (both kinds)
-      let extraP = toCents(extraMonthly + lumpDate + lumpN);
+      let extraP = toCents(recurringExtra + annual + lumpDate + lumpN);
       extraP = Math.min(extraP, toCents(balance - pFromSched));
 
-      // Cap: never pay more than (interest + remaining principal)
-      const maxThisMonth = toCents(interest + balance);
+      // Cap: never pay more than interest + remaining principal in the period
+      const maxThisPeriod = toCents(interest + balance);
       let totalPaid = toCents(iFromSched + pFromSched + extraP);
-
-      if (totalPaid > maxThisMonth) {
-        // Reduce extras first, then scheduled principal, then scheduled interest
-        let over = toCents(totalPaid - maxThisMonth);
-        if (extraP > 0 && over > 0) {
+      if (totalPaid > maxThisPeriod){
+        let over = toCents(totalPaid - maxThisPeriod);
+        if (extraP > 0 && over > 0){
           const cut = Math.min(extraP, over);
           extraP = toCents(extraP - cut); over = toCents(over - cut);
         }
-        if (pFromSched > 0 && over > 0) {
+        if (pFromSched > 0 && over > 0){
           const cut = Math.min(pFromSched, over);
           pFromSched = toCents(pFromSched - cut); over = toCents(over - cut);
         }
-        if (iFromSched > 0 && over > 0) {
+        if (iFromSched > 0 && over > 0){
           const cut = Math.min(iFromSched, over);
           iFromSched = toCents(iFromSched - cut); over = toCents(over - cut);
         }
         totalPaid = toCents(iFromSched + pFromSched + extraP);
       }
 
-      // Update balance & cumulative interest
       balance = toCents(balance - pFromSched - extraP);
       cumInt = toCents(cumInt + iFromSched);
 
       schedule.push({
         n: i,
         date: date ? new Date(date.getTime()) : null,
-        payment: toCents(iFromSched + pFromSched), // scheduled portion actually paid this month
+        payment: toCents(iFromSched + pFromSched),
         interest: iFromSched,
         principal: pFromSched,
         extra: extraP,
@@ -385,335 +800,61 @@
         balance
       });
 
-      // increment month
-      if (date) date.setUTCMonth(date.getUTCMonth() + 1);
-      if (i > 6000) break; // absolute cap
+      if (date) date = addPeriodDate(date);
     }
 
-    return {
-      schedule,
-      payment: scheduledPay,
-      totalInterest: cumInt,
-      months: schedule.length
-    };
+    return { schedule, payment: toCents(scheduledPay), totalInterest: toCents(cumInt), periods: schedule.length, periodsPerYear };
   }
 
-  function renderTable(tbody, schedule) {
-    const rows = schedule.map(row => {
+  function paymentForPeriods(P, rPerPeriod, nPeriods){
+    if (rPerPeriod === 0) return toCents(P / nPeriods);
+    const A = Math.pow(1 + rPerPeriod, nPeriods);
+    const pay = P * rPerPeriod * A / (A - 1);
+    // In accelerated biweekly, scheduled payment is typically half the monthly payment, but that convention is handled elsewhere.
+    return toCents(pay);
+  }
+
+  function renderTable(tbody, schedule){
+    tbody.innerHTML = schedule.map(row => {
       const d = row.date ? row.date.toISOString().slice(0,10) : '';
-      return `<tr>
-        <td class="label">${row.n}</td>
-        <td class="label">${d}</td>
-        <td>${fmtCurrency.format(row.payment)}</td>
-        <td>${fmtCurrency.format(row.interest)}</td>
-        <td>${fmtCurrency.format(row.principal)}</td>
-        <td>${fmtCurrency.format(row.extra)}</td>
-        <td>${fmtCurrency.format(row.cumInt)}</td>
-        <td>${fmtCurrency.format(Math.max(0,row.balance))}</td>
-      </tr>`;
+      return `
+        <tr>
+          <td class="label">${row.n}</td>
+          <td class="label">${d}</td>
+          <td>${fmtCurrency.format(row.payment)}</td>
+          <td>${fmtCurrency.format(row.interest)}</td>
+          <td>${fmtCurrency.format(row.principal)}</td>
+          <td>${fmtCurrency.format(row.extra)}</td>
+          <td>${fmtCurrency.format(row.cumInt)}</td>
+          <td>${fmtCurrency.format(Math.max(0, row.balance))}</td>
+        </tr>`;
     }).join('');
-    tbody.innerHTML = rows;
   }
 
-    function drawChart(canvas, schedWithExtras, schedBase) {
-      const ctx = canvas.getContext('2d');
-      const W = canvas.width, H = canvas.height;
-    
-      // ---------- Tunables ----------
-      const MIN_X_LABEL_GAP = 48; // px minimum horizontal gap between x labels
-      const MIN_Y_LABEL_GAP = 14; // px minimum vertical gap between y labels
-      const AXIS_TITLE_Y = 'Remaining balance'; // y-axis title text
-      const AXIS_FONT = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-    
-      // ---------- Helpers for auto ticks ----------
-      function niceNum(range, round) {
-        const exponent = Math.floor(Math.log10(Math.max(1e-12, range)));
-        const fraction = range / Math.pow(10, exponent);
-        let niceFraction;
-        if (round) {
-          if (fraction < 1.5) niceFraction = 1;
-          else if (fraction < 3) niceFraction = 2;
-          else if (fraction < 7) niceFraction = 5;
-          else niceFraction = 10;
-        } else {
-          if (fraction <= 1) niceFraction = 1;
-          else if (fraction <= 2) niceFraction = 2;
-          else if (fraction <= 5) niceFraction = 5;
-          else niceFraction = 10;
-        }
-        return niceFraction * Math.pow(10, exponent);
-      }
-      function autoTicks(min, max, desired = 6) {
-        if (!isFinite(min) || !isFinite(max) || max <= min) {
-          return { ticks: [min], step: 1, min, max };
-        }
-        const range = niceNum(max - min, false);
-        const step  = niceNum(range / (Math.max(2, desired) - 1), true);
-        const tmin  = Math.floor(min / step) * step;
-        const tmax  = Math.ceil(max / step) * step;
-        const ticks = [];
-        for (let v = tmin; v <= tmax + 0.5 * step; v += step) ticks.push(v);
-        return { ticks, step, min: tmin, max: tmax };
-      }
-      function autoMonthTicks(maxMonths, desired = 8) {
-        const candidates = [1, 2, 3, 6, 12, 24, 36, 48, 60, 72, 84, 96, 120, 180, 240, 360];
-        const target = Math.max(1, maxMonths / (Math.max(2, desired) - 1));
-        let step = candidates[0];
-        for (const c of candidates) {
-          if (Math.abs(c - target) < Math.abs(step - target)) step = c;
-        }
-        const ticks = [];
-        for (let v = 0; v <= maxMonths; v += step) ticks.push(v);
-        if (ticks[ticks.length - 1] !== maxMonths) ticks.push(maxMonths);
-        if (ticks[0] !== 0) ticks.unshift(0);
-        return { ticks, step };
-      }
-      const currencyShort = (v) => {
-        const abs = Math.abs(v);
-        const fmt = (n) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n);
-        if (abs >= 1e9) return '$' + fmt(v / 1e9) + 'B';
-        if (abs >= 1e6) return '$' + fmt(v / 1e6) + 'M';
-        if (abs >= 1e3) return '$' + fmt(v / 1e3) + 'k';
-        return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
-      };
-    
-      // ---------- Build combined scales ----------
-      const xs1 = schedWithExtras.map(r => r.n);
-      const ys1 = schedWithExtras.map(r => r.balance);
-      const xs2 = schedBase.map(r => r.n);
-      const ys2 = schedBase.map(r => r.balance);
-    
-      const maxX = Math.max(xs1[xs1.length - 1] || 1, xs2[xs2.length - 1] || 1);
-      const maxY = Math.max(
-        ys1.length ? Math.max(...ys1) : 0,
-        ys2.length ? Math.max(...ys2) : 0,
-        1
-      );
-    
-      // ---------- Compute ticks ----------
-      const yTicks = autoTicks(0, maxY, 6);
-      const xTicks = autoMonthTicks(maxX, 8);
-    
-      // ---------- Measure labels and compute dynamic paddings ----------
-      ctx.font = AXIS_FONT;
-    
-      // Max width among all Y labels
-      let maxYLabelW = 0;
-      yTicks.ticks.forEach(val => {
-        const w = ctx.measureText(currencyShort(val)).width;
-        if (w > maxYLabelW) maxYLabelW = w;
-      });
-    
-      // Title "width" when rotated is its text width (used as horizontal space on the left)
-      const titleW = ctx.measureText(AXIS_TITLE_Y).width;
-    
-      // Layout: | 8px | (title rotated) | 10px | Y labels (right-aligned) | 8px | Y-axis line | plot | 40px right padding
-      const PAD_LEFT   = Math.ceil(40 + maxYLabelW); // axis sits at PAD_LEFT
-      const PAD_RIGHT  = 40;
-      const PAD_TOP    = 40;
-      const PAD_BOTTOM = 40;
-    
-      // Map functions use dynamic paddings
-      const plotW = Math.max(10, W - PAD_LEFT - PAD_RIGHT);
-      const plotH = Math.max(10, H - PAD_TOP - PAD_BOTTOM);
-      const xMap = (n) => PAD_LEFT + plotW * (n / Math.max(1, maxX));
-      const yMap = (bal) => (H - PAD_BOTTOM) - plotH * ((bal - yTicks.min) / Math.max(1e-9, (yTicks.max - yTicks.min)));
-    
-      // ---------- Clear and draw axes ----------
-      ctx.clearRect(0, 0, W, H);
-      ctx.strokeStyle = '#304355'; ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(PAD_LEFT, H - PAD_BOTTOM); ctx.lineTo(W - PAD_RIGHT, H - PAD_BOTTOM); // x-axis
-      ctx.moveTo(PAD_LEFT, H - PAD_BOTTOM); ctx.lineTo(PAD_LEFT, PAD_TOP);             // y-axis
-      ctx.stroke();
-    
-      // ---------- Gridlines ----------
-      ctx.strokeStyle = '#1f2a37';
-      // Y gridlines
-      yTicks.ticks.forEach((val) => {
-        const y = yMap(val);
-        ctx.beginPath(); ctx.moveTo(PAD_LEFT, y); ctx.lineTo(W - PAD_RIGHT, y); ctx.stroke();
-      });
-      // X gridlines
-      xTicks.ticks.forEach((n) => {
-        const x = xMap(n);
-        ctx.beginPath(); ctx.moveTo(x, H - PAD_BOTTOM); ctx.lineTo(x, PAD_TOP); ctx.stroke();
-      });
-    
-      // ---------- Axis labels with smart skipping ----------
-      ctx.font = AXIS_FONT;
-      ctx.fillStyle = '#9fb3c8';
-    
-      // Y labels: right-aligned just to the left of the y-axis
-      ctx.textAlign = 'right';
-      let lastYDrawn = Infinity;
-      yTicks.ticks.forEach((val) => {
-        const y = yMap(val);
-        if (Math.abs(y - lastYDrawn) < MIN_Y_LABEL_GAP) return;
-        const yClamped = Math.min(H - PAD_BOTTOM - 2, Math.max(PAD_TOP + 12, y - 2));
-        ctx.fillText(currencyShort(val), PAD_LEFT - 8, yClamped);
-        lastYDrawn = yClamped;
-      });
-    
-      // X labels: centered, skip if too close
-      ctx.textAlign = 'center';
-      let lastRight = -Infinity;
-      xTicks.ticks.forEach((n, idx) => {
-        const x = xMap(n);
-        const label = String(n);
-        const w = ctx.measureText(label).width;
-        const left = x - w / 2;
-        const right = x + w / 2;
-    
-        if (idx === 0 || left - lastRight >= MIN_X_LABEL_GAP) {
-          ctx.fillText(label, x, H - PAD_BOTTOM + 14);
-          lastRight = right;
-        }
-      });
-      ctx.textAlign = 'left';
-    
-      // ---------- Series ----------
-      const drawSeries = (sched, color, dashed = false) => {
-        if (!sched.length) return;
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        if (dashed) ctx.setLineDash([6, 4]);
-        ctx.beginPath();
-        sched.forEach((r, idx) => {
-          const x = xMap(r.n);
-          const y = yMap(Math.max(0, r.balance));
-          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-        ctx.restore();
-      };
-      // Draw baseline under, with-extras over
-      drawSeries(schedBase, '#9fb3c8', true);
-      drawSeries(schedWithExtras, '#4fc3f7', false);
-    
-      // ---------- Axis titles ----------
-      ctx.fillStyle = '#9fb3c8';
-      // X title
-      ctx.fillText('Payments (months)', PAD_LEFT + plotW / 2 - 50, H - 10);
-    
-      // Y title: rotated and placed left of Y labels
-      ctx.save();
-      ctx.translate(titleW / 4, PAD_TOP + plotH / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.textAlign = 'center';
-      ctx.fillText(AXIS_TITLE_Y, 0, 0);
-      ctx.restore();
-    
-      // ---------- Legend ----------
-      const legendItems = [
-        { label: 'Baseline (no extras)', color: '#9fb3c8', dashed: true },
-        { label: 'With extras',         color: '#4fc3f7', dashed: false }
-      ];
-      const legendX = (W - PAD_RIGHT) - 180, legendY = PAD_TOP + 8, lineLen = 24, rowH = 18;
-      legendItems.forEach((it, i) => {
-        const y = legendY + i * rowH;
-        ctx.save();
-        ctx.strokeStyle = it.color; ctx.lineWidth = 2;
-        if (it.dashed) ctx.setLineDash([6, 4]);
-        ctx.beginPath(); ctx.moveTo(legendX, y); ctx.lineTo(legendX + lineLen, y); ctx.stroke();
-        ctx.restore();
-        ctx.fillStyle = '#e8f0ff';
-        ctx.fillText(it.label, legendX + lineLen + 8, y + 4);
-      });
-    
-      // ---------- Save background for hover redraws ----------
-      const baseImage = ctx.getImageData(0, 0, W, H);
-    
-      // ---------- Hover tooltip ----------
-      const wrap = canvas.parentElement; // .chart-wrap
-      const tip  = wrap.querySelector('#chartTooltip');
-    
-      function drawDot(x, y, color) {
-        ctx.save();
-        ctx.fillStyle = color;
-        ctx.strokeStyle = '#0b0f14';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fill(); ctx.stroke();
-        ctx.restore();
-      }
-      function findRow(sched, n) {
-        if (!sched || !sched.length) return null;
-        let lo = 0, hi = sched.length - 1, ans = null;
-        while (lo <= hi) {
-          const mid = (lo + hi) >> 1;
-          const v = sched[mid].n;
-          if (v === n) return sched[mid];
-          if (v < n) { ans = sched[mid]; lo = mid + 1; }
-          else { hi = mid - 1; }
-        }
-        return ans || sched[0];
-      }
-      function onMove(e) {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left, y = e.clientY - rect.top;
-    
-        if (x < PAD_LEFT || x > W - PAD_RIGHT || y < PAD_TOP || y > H - PAD_BOTTOM) { onLeave(); return; }
-    
-        const t = (x - PAD_LEFT) / Math.max(1, plotW);
-        const hoverN = Math.min(maxX, Math.max(1, Math.round(t * maxX)));
-    
-        const rowWith = findRow(schedWithExtras, hoverN);
-        const rowBase = findRow(schedBase, hoverN);
-    
-        ctx.putImageData(baseImage, 0, 0);
-    
-        const nForX = (rowWith?.n ?? rowBase?.n ?? hoverN);
-        const xLine = xMap(nForX);
-        ctx.save();
-        ctx.strokeStyle = '#f7b84f';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath(); ctx.moveTo(xLine, PAD_TOP); ctx.lineTo(xLine, H - PAD_BOTTOM); ctx.stroke();
-        ctx.restore();
-    
-        if (rowBase) drawDot(xMap(rowBase.n), yMap(Math.max(0, rowBase.balance)), '#9fb3c8');
-        if (rowWith) drawDot(xMap(rowWith.n), yMap(Math.max(0, rowWith.balance)), '#4fc3f7');
-    
-        const fmtCurrency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
-        const d = (rowWith?.date || rowBase?.date) ? (rowWith?.date ?? rowBase?.date) : null;
-        const label = d ? d.toISOString().slice(0,10) : `Payment #${hoverN}`;
-        const baseBal = rowBase ? Math.max(0, rowBase.balance) : 0;
-        const withBal = rowWith ? Math.max(0, rowWith.balance) : 0;
-        const delta = baseBal - withBal;
-    
-        tip.hidden = false;
-        tip.innerHTML = `
-          <div class="muted">${label}</div>
-          <div><strong>With extras:</strong> ${fmtCurrency.format(withBal)}</div>
-          <div><strong>Baseline:</strong> ${fmtCurrency.format(baseBal)}</div>
-          ${rowWith && rowBase ? `<div class="delta">Δ balance (baseline − with-extras): ${fmtCurrency.format(delta)}</div>` : ''}
-        `;
-    
-        const wrapRect = wrap.getBoundingClientRect();
-        let left = e.clientX - wrapRect.left + 14;
-        let top  = e.clientY - wrapRect.top + 14;
-        const tipW = tip.offsetWidth, tipH = tip.offsetHeight;
-        if (left + tipW > wrapRect.width - 8) left = Math.max(8, wrapRect.width - tipW - 8);
-        if (top + tipH > wrapRect.height - 8) top = Math.max(8, wrapRect.height - tipH - 8);
-        tip.style.left = left + 'px';
-        tip.style.top = top + 'px';
-      }
-      function onLeave() {
-        ctx.putImageData(baseImage, 0, 0);
-        tip.hidden = true;
-      }
-      if (canvas._hoverHandlers) {
-        canvas.removeEventListener('mousemove', canvas._hoverHandlers.move);
-        canvas.removeEventListener('mouseleave', canvas._hoverHandlers.leave);
-      }
-      canvas.addEventListener('mousemove', onMove);
-      canvas.addEventListener('mouseleave', onLeave);
-      canvas._hoverHandlers = { move: onMove, leave: onLeave };
+  function yearlySummary(schedule, periodsPerYear, hasDates){
+    // Group by calendar year if dates exist, else every periodsPerYear periods.
+    const groups = new Map();
+    for (const row of schedule){
+      const key = hasDates && row.date ? String(row.date.getUTCFullYear()) : `Year ${Math.ceil(row.n / periodsPerYear)}`;
+      if (!groups.has(key)) groups.set(key, { key, payment:0, interest:0, principal:0, extra:0, endBal: row.balance, startN: row.n });
+      const g = groups.get(key);
+      g.payment += row.payment;
+      g.interest += row.interest;
+      g.principal += row.principal;
+      g.extra += row.extra;
+      g.endBal = row.balance;
     }
+    return [...groups.values()].map(g => ({
+      key: g.key,
+      payment: toCents(g.payment),
+      interest: toCents(g.interest),
+      principal: toCents(g.principal),
+      extra: toCents(g.extra),
+      endBal: toCents(g.endBal)
+    }));
+  }
 
-  function exportCSV(tableEl) {
+  function exportCSV(tableEl){
     const rows = [...tableEl.querySelectorAll('tr')].map(tr =>
       [...tr.children].map(td => `"${td.textContent.replaceAll('"','""')}"`).join(',')
     ).join('\n');
@@ -725,106 +866,648 @@
     URL.revokeObjectURL(a.href);
   }
 
-  // ---------- Wire up UI ----------
-  const $ = (id) => document.getElementById(id);
-  const form = $('calcForm');
-  const lumpsTbody = document.querySelector('#lumpTable tbody');
-
-  function setModeUI(mode) {
-    const isCustom = mode === 'custom';
-    $('termWrap').classList.toggle('hidden', isCustom);
-    $('payWrap').classList.toggle('hidden', !isCustom);
+  // ---------- Charts (Canvas) ----------
+  function niceNum(range, round){
+    const exponent = Math.floor(Math.log10(Math.max(1e-12, range)));
+    const fraction = range / Math.pow(10, exponent);
+    let niceFraction;
+    if (round){
+      if (fraction < 1.5) niceFraction = 1;
+      else if (fraction < 3) niceFraction = 2;
+      else if (fraction < 7) niceFraction = 5;
+      else niceFraction = 10;
+    } else {
+      if (fraction <= 1) niceFraction = 1;
+      else if (fraction <= 2) niceFraction = 2;
+      else if (fraction <= 5) niceFraction = 5;
+      else niceFraction = 10;
+    }
+    return niceFraction * Math.pow(10, exponent);
   }
 
-  // Mode radios
-  [...document.querySelectorAll('input[name="mode"]')].forEach(r =>
-    r.addEventListener('change', (e) => setModeUI(e.target.value))
-  );
+  function autoTicks(min, max, desired=6){
+    if (!isFinite(min) || !isFinite(max) || max <= min){
+      return { ticks:[min], step:1, min, max };
+    }
+    const range = niceNum(max-min, false);
+    const step = niceNum(range / (Math.max(2, desired)-1), true);
+    const tmin = Math.floor(min/step) * step;
+    const tmax = Math.ceil(max/step) * step;
+    const ticks=[];
+    for (let v=tmin; v<=tmax + 0.5*step; v+=step) ticks.push(v);
+    return { ticks, step, min:tmin, max:tmax };
+  }
 
-  $('addLump').addEventListener('click', () => addLumpRow());
+  function currencyShort(v){
+    const abs = Math.abs(v);
+    const fmt = (n) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(n);
+    if (abs >= 1e9) return '$' + fmt(v/1e9) + 'B';
+    if (abs >= 1e6) return '$' + fmt(v/1e6) + 'M';
+    if (abs >= 1e3) return '$' + fmt(v/1e3) + 'k';
+    return new Intl.NumberFormat(undefined, { style:'currency', currency:'USD', maximumFractionDigits:0 }).format(v);
+  }
 
-  form.addEventListener('reset', () => {
-    lumpsTbody.innerHTML = '';
-    $('results').hidden = true;
-    $('announce').textContent = 'Cleared.';
-    setTimeout(() => { // keep the default mode UI consistent after reset
-      const mode = document.querySelector('input[name="mode"]:checked').value;
-      setModeUI(mode);
+  function drawBalanceChart(canvas, schedWith, schedBase){
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const PADL = 70, PADR = 26, PADT = 26, PADB = 44;
+    const plotW = W - PADL - PADR;
+    const plotH = H - PADT - PADB;
+
+    const maxX = Math.max(schedWith.at(-1)?.n || 1, schedBase.at(-1)?.n || 1);
+    const maxY = Math.max(
+      ...schedWith.map(r => r.balance),
+      ...schedBase.map(r => r.balance),
+      1
+    );
+
+    const yTicks = autoTicks(0, maxY, 6);
+
+    const xMap = (n) => PADL + plotW * (n / maxX);
+    const yMap = (v) => (H - PADB) - plotH * ((v - yTicks.min) / Math.max(1e-9, (yTicks.max - yTicks.min)));
+
+    // clear
+    ctx.clearRect(0,0,W,H);
+
+    // grid
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.lineWidth = 1;
+    yTicks.ticks.forEach(val => {
+      const y = yMap(val);
+      ctx.beginPath(); ctx.moveTo(PADL, y); ctx.lineTo(W-PADR, y); ctx.stroke();
     });
-  });
 
-  $('exportBtn').addEventListener('click', () => exportCSV($('amortTable')));
+    // axes
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+    ctx.beginPath();
+    ctx.moveTo(PADL, PADT); ctx.lineTo(PADL, H-PADB);
+    ctx.lineTo(W-PADR, H-PADB);
+    ctx.stroke();
 
-  $('calcBtn').addEventListener('click', () => {
-    // Inputs
-    const mode = document.querySelector('input[name="mode"]:checked').value;
-    const P = Number($('principal').value);
-    const r = Number($('rate').value);
-    const termYears = Number($('termYears').value);
-    const userPay = Number($('userPayment').value);
-    const extraMonthly = Number($('extraMonthly').value) || 0;
-    const startDate = $('startDate').value ? new Date($('startDate').value + 'T12:00:00') : null;
+    // labels
+    ctx.fillStyle = 'rgba(159,179,200,.95)';
+    ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    ctx.textAlign='right';
+    yTicks.ticks.forEach(val => {
+      const y = yMap(val);
+      ctx.fillText(currencyShort(val), PADL-8, y+4);
+    });
+    ctx.textAlign='center';
+    const xStep = niceNum(maxX/7, true);
+    for (let n=0; n<=maxX; n+=xStep){
+      const x = xMap(n);
+      ctx.fillText(String(Math.round(n)), x, H-PADB+18);
+    }
+    ctx.fillText('Payment #', PADL + plotW/2, H-10);
+
+    // series
+    function series(sched, stroke, dashed=false){
+      if (!sched.length) return;
+      ctx.save();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2.25;
+      if (dashed) ctx.setLineDash([7,5]);
+      ctx.beginPath();
+      sched.forEach((r, i) => {
+        const x = xMap(r.n);
+        const y = yMap(Math.max(0,r.balance));
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    }
+    series(schedBase, 'rgba(159,179,200,.95)', true);
+    series(schedWith, 'rgba(79,195,247,.95)', false);
+
+    // legend
+    ctx.textAlign='left';
+    ctx.fillStyle = 'rgba(232,240,255,.95)';
+    const lx = W - PADR - 220, ly = PADT + 8;
+    ctx.fillText('With extras', lx+34, ly+4);
+    ctx.fillText('Baseline', lx+34, ly+22);
+    ctx.strokeStyle = 'rgba(79,195,247,.95)'; ctx.lineWidth=2.25;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+26, ly); ctx.stroke();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(159,179,200,.95)'; ctx.setLineDash([7,5]);
+    ctx.beginPath(); ctx.moveTo(lx, ly+18); ctx.lineTo(lx+26, ly+18); ctx.stroke();
+    ctx.restore();
+
+    // hover
+    const wrap = canvas.parentElement;
+    const tip = $('chartTooltip');
+
+    const baseImage = ctx.getImageData(0,0,W,H);
+
+    function findRow(sched, n){
+      if (!sched.length) return null;
+      let lo=0, hi=sched.length-1, ans=null;
+      while (lo<=hi){
+        const mid=(lo+hi)>>1;
+        const v=sched[mid].n;
+        if (v===n) return sched[mid];
+        if (v < n){ ans=sched[mid]; lo=mid+1; }
+        else hi=mid-1;
+      }
+      return ans || sched[0];
+    }
+
+    function dot(x,y,color){
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.strokeStyle = 'rgba(11,15,20,.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x,y,4.2,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+
+    function onMove(e){
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if (x < PADL || x > W-PADR || y < PADT || y > H-PADB){ onLeave(); return; }
+
+      const t = (x - PADL) / Math.max(1, plotW);
+      const hoverN = clamp(Math.round(t * maxX), 1, maxX);
+      const rw = findRow(schedWith, hoverN);
+      const rb = findRow(schedBase, hoverN);
+
+      ctx.putImageData(baseImage,0,0);
+      const xLine = xMap(rw?.n || rb?.n || hoverN);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(247,184,79,.95)';
+      ctx.setLineDash([5,5]);
+      ctx.beginPath(); ctx.moveTo(xLine,PADT); ctx.lineTo(xLine,H-PADB); ctx.stroke();
+      ctx.restore();
+
+      if (rb) dot(xMap(rb.n), yMap(Math.max(0,rb.balance)), 'rgba(159,179,200,.95)');
+      if (rw) dot(xMap(rw.n), yMap(Math.max(0,rw.balance)), 'rgba(79,195,247,.95)');
+
+      const d = rw?.date || rb?.date;
+      const label = d ? d.toISOString().slice(0,10) : `Payment #${hoverN}`;
+      const baseBal = rb ? Math.max(0, rb.balance) : 0;
+      const withBal = rw ? Math.max(0, rw.balance) : 0;
+      const delta = baseBal - withBal;
+
+      tip.hidden = false;
+      tip.innerHTML = `
+        <div class="muted">${label}</div>
+        <div><strong>With extras:</strong> ${fmtCurrency.format(withBal)}</div>
+        <div><strong>Baseline:</strong> ${fmtCurrency.format(baseBal)}</div>
+        <div style="margin-top:4px; color: var(--good)"><strong>Δ saved balance:</strong> ${fmtCurrency.format(delta)}</div>
+      `;
+
+      const wrapRect = wrap.getBoundingClientRect();
+      let left = e.clientX - wrapRect.left + 14;
+      let top  = e.clientY - wrapRect.top + 14;
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      if (left + tw > wrapRect.width - 8) left = Math.max(8, wrapRect.width - tw - 8);
+      if (top + th > wrapRect.height - 8) top = Math.max(8, wrapRect.height - th - 8);
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+    }
+
+    function onLeave(){
+      ctx.putImageData(baseImage,0,0);
+      tip.hidden = true;
+    }
+
+    canvas.onmousemove = onMove;
+    canvas.onmouseleave = onLeave;
+  }
+
+  function drawYearlyPIChart(canvas, yearly){
+    const ctx = canvas.getContext('2d');
+    const W=canvas.width, H=canvas.height;
+    const PADL=70, PADR=26, PADT=22, PADB=44;
+    const plotW=W-PADL-PADR;
+    const plotH=H-PADT-PADB;
+
+    ctx.clearRect(0,0,W,H);
+
+    if (!yearly.length){
+      ctx.fillStyle = 'rgba(159,179,200,.95)';
+      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      ctx.fillText('No data', PADL, PADT+14);
+      return;
+    }
+
+    const maxY = Math.max(...yearly.map(y => y.interest + y.principal + y.extra), 1);
+    const yTicks = autoTicks(0, maxY, 5);
+
+    const yMap = (v) => (H-PADB) - plotH * ((v - yTicks.min) / Math.max(1e-9, (yTicks.max-yTicks.min)));
+
+    // grid
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    yTicks.ticks.forEach(val => {
+      const y = yMap(val);
+      ctx.beginPath(); ctx.moveTo(PADL,y); ctx.lineTo(W-PADR,y); ctx.stroke();
+    });
+
+    // axis
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+    ctx.beginPath();
+    ctx.moveTo(PADL,PADT); ctx.lineTo(PADL,H-PADB);
+    ctx.lineTo(W-PADR,H-PADB);
+    ctx.stroke();
+
+    // y labels
+    ctx.fillStyle='rgba(159,179,200,.95)';
+    ctx.font='12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    ctx.textAlign='right';
+    yTicks.ticks.forEach(val => {
+      ctx.fillText(currencyShort(val), PADL-8, yMap(val)+4);
+    });
+
+    // bars (stacked: interest + principal + extra)
+    const n = yearly.length;
+    const gap = 10;
+    const barW = Math.max(12, (plotW - gap*(n-1)) / n);
+
+    function rect(x,y,w,h,fill){
+      ctx.fillStyle=fill;
+      ctx.fillRect(x,y,w,h);
+    }
+
+    const colors = {
+      interest:'rgba(247,184,79,.92)',
+      principal:'rgba(126,224,129,.88)',
+      extra:'rgba(79,195,247,.92)'
+    };
+
+    ctx.textAlign='center';
+    yearly.forEach((yr, i) => {
+      const x = PADL + i*(barW+gap);
+      const base = H-PADB;
+
+      const hI = (yr.interest / yTicks.max) * plotH;
+      const hP = (yr.principal / yTicks.max) * plotH;
+      const hE = (yr.extra / yTicks.max) * plotH;
+
+      // Use yMap for top; simpler: proportions to plotH. Since yTicks.min is 0, ok.
+      let yTop = base;
+      if (yr.extra > 0){ yTop -= hE; rect(x, yTop, barW, hE, colors.extra); }
+      yTop -= hP; rect(x, yTop, barW, hP, colors.principal);
+      yTop -= hI; rect(x, yTop, barW, hI, colors.interest);
+
+      // x label
+      ctx.fillStyle='rgba(159,179,200,.95)';
+      const label = String(yr.key).replace('Year ','Y');
+      ctx.fillText(label, x+barW/2, H-PADB+18);
+    });
+
+    // legend
+    ctx.textAlign='left';
+    const lx = W-PADR-260, ly = PADT+6;
+    const items = [
+      {k:'Interest', c: colors.interest},
+      {k:'Principal', c: colors.principal},
+      {k:'Extra', c: colors.extra}
+    ];
+    ctx.font='12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    items.forEach((it, idx) => {
+      const y = ly + idx*18;
+      ctx.fillStyle = it.c; ctx.fillRect(lx, y-8, 14, 10);
+      ctx.fillStyle = 'rgba(232,240,255,.95)';
+      ctx.fillText(it.k, lx+20, y);
+    });
+  }
+
+  // ---------- Mode UI ----------
+  let mode = 'term';
+  function setMode(next){
+    mode = next;
+    $('modeTerm').setAttribute('aria-pressed', next==='term');
+    $('modeCustom').setAttribute('aria-pressed', next==='custom');
+    $('termWrap').classList.toggle('hidden', next==='custom');
+    $('payWrap').classList.toggle('hidden', next!=='custom');
+  }
+
+  // ---------- Persistence / share ----------
+  const LS_KEY = 'mortgageCalcPlus_v1';
+  const THEME_KEY = 'mortgageCalcPlus_theme';
+
+  function getState(){
+    const ids = [
+      'principal','rate','termYears','userPayment','startDate','extraMonthly',
+      'taxAnnual','insAnnual','hoaMonthly','pmiMonthly','payFreq','annualExtra','extraStartMonth','extraEndMonth'
+    ];
+    const state = { mode, values:{} };
+    ids.forEach(id => state.values[id] = $(id).value);
+    // lumps
+    state.lumps = [...document.querySelectorAll('#lumpTable tbody tr')].map(tr => ({
+      type: tr.querySelector('select.lump-type')?.value || 'date',
+      dateVal: tr.querySelector('input.lump-date')?.value || '',
+      nVal: tr.querySelector('input.lump-n')?.value || '',
+      amtVal: tr.querySelector('input.lump-amt')?.value || ''
+    }));
+    return state;
+  }
+
+  function setState(state){
+    if (!state) return;
+    setMode(state.mode || 'term');
+    if (state.values){
+      Object.entries(state.values).forEach(([id, val]) => {
+        if ($(id)) $(id).value = val;
+      });
+    }
+    // sync sliders
+    $('rateRange').value = $('rate').value || $('rateRange').value;
+    $('termRange').value = $('termYears').value || $('termRange').value;
+    syncPretty();
+
+    // lumps
+    const tbody = document.querySelector('#lumpTable tbody');
+    tbody.innerHTML='';
+    (state.lumps && state.lumps.length ? state.lumps : [{type:'n'}]).forEach(r => addLumpRow(r));
+  }
+
+  function saveLocal(){
+    localStorage.setItem(LS_KEY, JSON.stringify(getState()));
+    toast('Saved.');
+  }
+
+  function loadLocal(){
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw){ toast('Nothing saved yet.'); return; }
+    try{
+      setState(JSON.parse(raw));
+      toast('Loaded.');
+    }catch{
+      toast('Could not load saved data.');
+    }
+  }
+
+  function stateToQuery(state){
+    const p = new URLSearchParams();
+    p.set('mode', state.mode);
+    for (const [k,v] of Object.entries(state.values)) if (String(v||'').length) p.set(k, v);
+    if (state.lumps?.length){
+      // compact: type|date|n|amt ; separated by ';'
+      const enc = state.lumps.map(r => [r.type||'', r.dateVal||'', r.nVal||'', r.amtVal||''].join('|')).join(';');
+      p.set('lumps', enc);
+    }
+    return p.toString();
+  }
+
+  function queryToState(){
+    const q = new URLSearchParams(location.search);
+    if (![...q.keys()].length) return null;
+    const values = {};
+    ['principal','rate','termYears','userPayment','startDate','extraMonthly','taxAnnual','insAnnual','hoaMonthly','pmiMonthly','payFreq','annualExtra','extraStartMonth','extraEndMonth'].forEach(k => {
+      if (q.has(k)) values[k] = q.get(k);
+    });
+    const modeQ = q.get('mode') || 'term';
+    const lumpsRaw = q.get('lumps') || '';
+    const lumps = lumpsRaw ? lumpsRaw.split(';').map(chunk => {
+      const [type,dateVal,nVal,amtVal] = chunk.split('|');
+      return { type: type||'date', dateVal:dateVal||'', nVal:nVal||'', amtVal:amtVal||'' };
+    }) : [{type:'n'}];
+    return { mode: modeQ, values, lumps };
+  }
+
+  async function copyShareLink(){
+    const qs = stateToQuery(getState());
+    const url = location.origin + location.pathname + (qs ? ('?' + qs) : '');
+    try{
+      await navigator.clipboard.writeText(url);
+      toast('Link copied to clipboard.');
+    }catch{
+      toast('Could not copy automatically. You can copy from the address bar.');
+      console.log(url);
+    }
+  }
+
+  // ---------- Pretty labels ----------
+  function syncPretty(){
+    const P = parseNum('principal', NaN);
+    const r = parseNum('rate', NaN);
+    const term = parseNum('termYears', NaN);
+    const pay = parseNum('userPayment', NaN);
+    const extra = parseNum('extraMonthly', 0);
+
+    $('principalPretty').textContent = isFinite(P) ? fmtCurrency.format(P) : '—';
+    $('ratePretty').textContent = isFinite(r) ? (r.toFixed(3).replace(/\.0+$/,'').replace(/\.$/,'') + '%') : '—';
+    $('termPretty').textContent = isFinite(term) ? (term + 'y') : '—';
+    $('payPretty').textContent = isFinite(pay) ? fmtCurrency.format(pay) : '—';
+    $('extraPretty').textContent = extra>0 ? ('+' + fmtCurrency.format(extra)) : '—';
+
+    // tags
+    $('rateTag').textContent = (isFinite(r) ? r.toFixed(2) : Number($('rateRange').value).toFixed(2)) + '%';
+    $('termTag').textContent = (isFinite(term) ? term : Number($('termRange').value)) + 'y';
+  }
+
+  // ---------- Toast/status ----------
+  function toast(msg){
+    $('announce').textContent = msg;
+    $('statusTag').textContent = msg;
+    setTimeout(() => { $('statusTag').textContent = 'Ready'; }, 2400);
+  }
+
+  // ---------- Calculation and rendering ----------
+  let lastWith = null;
+  let lastBase = null;
+
+  function calculate(){
+    const P = parseNum('principal', NaN);
+    const rate = parseNum('rate', NaN);
+    const termYears = parseNum('termYears', NaN);
+    const userPay = parseNum('userPayment', NaN);
+    const extraMonthly = parseNum('extraMonthly', 0);
+    const payFreq = $('payFreq').value;
+    const annualExtra = parseNum('annualExtra', 0);
+    const extraStartMonth = parseNum('extraStartMonth', 1);
+    const extraEndMonth = $('extraEndMonth').value ? parseNum('extraEndMonth', null) : null;
+
+    const startDate = $('startDate').value ? new Date($('startDate').value + 'T12:00:00Z') : null;
     const lumps = parseLumps();
 
     // Validation
     $('principalErr').textContent = (P > 0) ? '' : 'Enter a positive loan amount.';
-    $('rateErr').textContent = (r >= 0) ? '' : 'Rate cannot be negative.';
+    $('rateErr').textContent = (rate >= 0) ? '' : 'Rate cannot be negative.';
     $('termErr').textContent = '';
     $('payErr').textContent = '';
-    if (!(P > 0 && r >= 0)) return;
 
-    let termMonths;
-    if (mode === 'term') {
+    if (!(P > 0) || !(rate >= 0)) return;
+
+    let termMonths = null;
+    if (mode === 'term'){
       if (!(termYears > 0)) { $('termErr').textContent = 'Enter a positive term in years.'; return; }
       termMonths = Math.round(termYears * 12);
     } else {
       if (!(userPay > 0)) { $('payErr').textContent = 'Enter a positive monthly payment.'; return; }
     }
 
-    // Optional warning if date-based lumps but no start date
+    // Warn about date-based lumps without startDate
     let warn = '';
-    if (!$('startDate').value && lumps.some(L => L.kind === 'date')) {
-      warn = ' Note: Date-based lump sums require a Start date; those entries were ignored.';
-    }
+    if (!startDate && lumps.some(L => L.kind === 'date')) warn = ' Date-based lump sums require a start date; those entries were ignored.';
 
-    // Baseline (no extras)
+    // Baseline
     const base = buildSchedule({
-      P, ratePct: r, startDate, mode, termMonths, userPay,
-      extraMonthly: 0, lumps: []
+      P, ratePct: rate, startDate,
+      mode, termMonths, userPay,
+      extraMonthly:0, annualExtra:0, lumps:[],
+      payFreq,
+      extraStartMonth:1,
+      extraEndMonth:null
     });
-    if (base.error) { $('payErr').textContent = base.error; return; }
+    if (base.error){ $('payErr').textContent = base.error; return; }
 
-    // With extras (monthly + lumps)
+    // With extras
     const withX = buildSchedule({
-      P, ratePct: r, startDate, mode, termMonths, userPay,
-      extraMonthly, lumps
+      P, ratePct: rate, startDate,
+      mode, termMonths, userPay,
+      extraMonthly, annualExtra, lumps,
+      payFreq,
+      extraStartMonth, extraEndMonth
     });
-    if (withX.error) { $('payErr').textContent = withX.error; return; }
+    if (withX.error){ $('payErr').textContent = withX.error; return; }
 
-    // Render KPIs
-    $('kpiPayment').textContent = fmtCurrency.format(base.payment);
+    lastBase = base;
+    lastWith = withX;
+
+    // KPIs
+    $('kpiPayment').textContent = fmtCurrency.format(base.payment * (payFreq==='monthly' ? 1 : 2));
     $('kpiInterestBase').textContent = fmtCurrency.format(base.totalInterest);
     $('kpiInterestWith').textContent = fmtCurrency.format(withX.totalInterest);
     $('kpiSaved').textContent = fmtCurrency.format(Math.max(0, base.totalInterest - withX.totalInterest));
-    $('kpiMonthsSaved').textContent = (base.months - withX.months) + ' mo';
-    if (withX.schedule.at(-1)?.date) {
-      const d = withX.schedule.at(-1).date.toISOString().slice(0,10);
-      $('kpiPayoff').textContent = d;
-    } else {
-      $('kpiPayoff').textContent = '—';
-    }
 
-    // Render table & chart for "with extras" schedule
+    const baseMonths = payFreq==='monthly' ? base.periods : Math.round(base.periods * 12 / base.periodsPerYear);
+    const withMonths = payFreq==='monthly' ? withX.periods : Math.round(withX.periods * 12 / withX.periodsPerYear);
+    $('kpiMonthsSaved').textContent = `${Math.max(0, baseMonths - withMonths)} mo`;
+
+    const payoffDate = withX.schedule.at(-1)?.date;
+    $('kpiPayoff').textContent = payoffDate ? payoffDate.toISOString().slice(0,10) : '—';
+
+    // Escrow + outflow
+    const escrow = toCents(parseNum('taxAnnual',0)/12 + parseNum('insAnnual',0)/12 + parseNum('hoaMonthly',0) + parseNum('pmiMonthly',0));
+    $('kpiEscrow').textContent = `Escrow estimate: ${fmtCurrency.format(escrow)}/mo`;
+
+    // Scheduled payment display: if biweekly, out-of-pocket monthly is approx 2 periods.
+    const piMonthly = toCents(base.payment * (payFreq==='monthly' ? 1 : 2));
+    $('kpiOutflow').textContent = `Estimated monthly outflow: ${fmtCurrency.format(piMonthly + escrow)} (P&I + escrow)`;
+
+    // Show results
+    $('resultsCard').hidden = false;
+    $('chartCard').hidden = false;
+    $('tableCard').hidden = false;
+
+    // Render table (default all)
     renderTable($('amortTable').querySelector('tbody'), withX.schedule);
-    drawChart($('chart'), withX.schedule, base.schedule);
 
-    $('results').hidden = false;
-    $('announce').textContent = 'Calculation complete. (Payments are capped each month at interest + principal.)' + warn;
+    // Charts
+    drawBalanceChart($('balChart'), withX.schedule, base.schedule);
+    const hasDates = !!startDate;
+    const yr = yearlySummary(withX.schedule, withX.periodsPerYear, hasDates);
+    drawYearlyPIChart($('piChart'), yr);
+
+    toast('Calculation complete.' + warn);
+  }
+
+  // Table filter
+  function applyTableFilter(){
+    if (!lastWith) return;
+    const tbody = $('amortTable').querySelector('tbody');
+    const filter = $('tableFilter').value;
+    if (filter === 'all'){
+      renderTable(tbody, lastWith.schedule);
+      return;
+    }
+    if (filter === 'milestones'){
+      const step = lastWith.periodsPerYear; // show roughly annual milestone
+      const rows = lastWith.schedule.filter(r => r.n % step === 0 || r.n === 1 || r.n === lastWith.schedule.at(-1).n);
+      renderTable(tbody, rows);
+      return;
+    }
+    // yearly summary as pseudo-table
+    const hasDates = !!($('startDate').value);
+    const yr = yearlySummary(lastWith.schedule, lastWith.periodsPerYear, hasDates);
+    tbody.innerHTML = yr.map((y, idx) => `
+      <tr>
+        <td class="label">${idx+1}</td>
+        <td class="label">${y.key}</td>
+        <td>${fmtCurrency.format(y.payment)}</td>
+        <td>${fmtCurrency.format(y.interest)}</td>
+        <td>${fmtCurrency.format(y.principal)}</td>
+        <td>${fmtCurrency.format(y.extra)}</td>
+        <td>${''}</td>
+        <td>${fmtCurrency.format(Math.max(0,y.endBal))}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ---------- Theme ----------
+  function setTheme(next){
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem(THEME_KEY, next);
+  }
+  function toggleTheme(){
+    const cur = document.documentElement.dataset.theme || 'dark';
+    setTheme(cur === 'dark' ? 'light' : 'dark');
+  }
+
+  // ---------- Wire up ----------
+  $('modeTerm').addEventListener('click', () => setMode('term'));
+  $('modeCustom').addEventListener('click', () => setMode('custom'));
+
+  $('addLump').addEventListener('click', () => addLumpRow({type:'date'}));
+
+  $('calcForm').addEventListener('reset', () => {
+    setTimeout(() => {
+      document.querySelector('#lumpTable tbody').innerHTML = '';
+      addLumpRow({type:'n'});
+      $('resultsCard').hidden = true;
+      $('chartCard').hidden = true;
+      $('tableCard').hidden = true;
+      toast('Cleared.');
+      syncPretty();
+    }, 0);
   });
 
-  // Seed UI
-  addLumpRow({ type: 'n' }); // start with a Payment # row by default
-  setModeUI('term');
+  $('calcBtn').addEventListener('click', calculate);
+  $('exportBtn').addEventListener('click', () => exportCSV($('amortTable')));
+  $('toggleTableBtn').addEventListener('click', () => $('tableCard').hidden = !$('tableCard').hidden);
+  $('tableFilter').addEventListener('change', applyTableFilter);
+
+  // Sliders sync
+  $('rateRange').addEventListener('input', (e) => {
+    $('rate').value = e.target.value;
+    syncPretty();
+  });
+  $('termRange').addEventListener('input', (e) => {
+    $('termYears').value = e.target.value;
+    syncPretty();
+  });
+
+  // Pretty updates on input
+  ['principal','rate','termYears','userPayment','extraMonthly'].forEach(id => $(id).addEventListener('input', syncPretty));
+
+  $('themeBtn').addEventListener('click', toggleTheme);
+  $('saveBtn').addEventListener('click', saveLocal);
+  $('loadBtn').addEventListener('click', loadLocal);
+  $('copyLinkBtn').addEventListener('click', copyShareLink);
+
+  // init
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  if (savedTheme) setTheme(savedTheme);
+  else setTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+
+  addLumpRow({type:'n'});
+  setMode('term');
+
+  // restore from query if present
+  const qState = queryToState();
+  if (qState) setState(qState);
+  else {
+    // sensible defaults
+    $('rate').value = '6.75';
+    $('termYears').value = '30';
+  }
+  $('rateRange').value = $('rate').value || '6.75';
+  $('termRange').value = $('termYears').value || '30';
+  syncPretty();
+
 })();
 </script>
 </body>
+</html>
