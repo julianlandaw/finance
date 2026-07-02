@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mortgage Payoff Calculator+</title>
+  <title>Mortgage Planner+ — Payoff & Extra Payment Calculator</title>
   <meta name="color-scheme" content="dark light" />
   <style>
     :root{
@@ -276,6 +276,48 @@
     .hidden{display:none !important}
 
     .toast{min-height: 20px}
+
+    /* ---------- UX polish additions ---------- */
+    .intro{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+      margin-bottom:14px;
+    }
+    @media (max-width: 900px){.intro{grid-template-columns:1fr}}
+    .hero{
+      padding:16px;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      background:linear-gradient(135deg, rgba(79,195,247,.14), rgba(167,139,250,.10)), var(--panel);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .hero h2{margin:0 0 6px; font-size:1.12rem}
+    .hero p{margin:0; color:var(--muted)}
+    .quick-actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+    .quick-actions .btn{padding:9px 10px; font-size:.92rem}
+    .checkrow{display:flex; align-items:center; gap:8px; color:var(--muted); font-size:.9rem; font-weight:650}
+    .checkrow input{accent-color:var(--accent)}
+    .mini-card{
+      padding:14px 16px;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .mini-card .big{font-size:1.35rem; font-weight:950; margin-top:4px}
+    .field:focus-within label{color:var(--accent)}
+    input[type="number"]:hover, input[type="date"]:hover, select:hover{border-color:rgba(79,195,247,.38)}
+    .input-tip{display:flex; gap:6px; align-items:flex-start; margin-top:6px; color:var(--muted); font-size:.82rem}
+    .input-tip::before{content:"ⓘ"; color:var(--accent); font-weight:900}
+    .chart-controls{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+    .chart-pill{border:1px solid var(--border); border-radius:999px; padding:6px 10px; color:var(--muted); background:rgba(255,255,255,.04); font-size:.82rem; font-weight:750}
+    .kpi.good-news{background:linear-gradient(135deg, rgba(126,224,129,.16), rgba(79,195,247,.07)); border-color:rgba(126,224,129,.28)}
+    .footer-actions{position:sticky; bottom:10px; z-index:3; padding:10px; margin-top:14px; border:1px solid var(--border); border-radius:16px; background:var(--panel); backdrop-filter:blur(10px); box-shadow:var(--shadow)}
+    @media (max-width:520px){.toolbar .pill{border-radius:16px}.toolbar .btn{padding:9px}.footer-actions .btn.primary{flex:1}}
+
   </style>
 </head>
 <body>
@@ -284,8 +326,8 @@
       <div class="title">
         <div class="logo" aria-hidden="true">M+</div>
         <div>
-          <h1>Mortgage Payoff Calculator+</h1>
-          <div class="sub">Cleaner UI • Extra payments • Escrow estimate • Scenario share</div>
+          <h1>Mortgage Planner+</h1>
+          <div class="sub">Simple payoff planning • Extra-payment scenarios • Beautiful charts</div>
         </div>
       </div>
 
@@ -298,6 +340,28 @@
         </div>
       </div>
     </header>
+
+
+    <section class="intro" aria-label="Quick start">
+      <div class="hero">
+        <h2>Plan a payoff strategy in under a minute</h2>
+        <p>Enter the loan amount, rate, and term. Then add extra monthly payments or lump sums to see how much interest and time you can save.</p>
+        <div class="quick-actions" role="group" aria-label="Example scenarios">
+          <button type="button" class="btn" data-preset="starter">Try sample loan</button>
+          <button type="button" class="btn" data-preset="extra200">Add $200/mo extra</button>
+          <button type="button" class="btn" data-preset="bonus">Add annual bonus</button>
+          <button type="button" class="btn ghost" id="clearExtrasBtn">Clear extras</button>
+        </div>
+      </div>
+      <aside class="mini-card" aria-live="polite">
+        <div class="muted tiny">Estimated standard monthly P&amp;I</div>
+        <div class="big" id="paymentPreview">—</div>
+        <div class="input-tip">Updates as you type. Use Calculate for the full schedule, payoff date, and charts.</div>
+        <label class="checkrow" style="margin-top:10px" for="autoCalc">
+          <input id="autoCalc" type="checkbox" checked /> Auto-update results after I edit inputs
+        </label>
+      </aside>
+    </section>
 
     <div class="grid">
       <!-- LEFT: Inputs -->
@@ -439,9 +503,9 @@
               </div>
             </details>
 
-            <div class="row" style="margin-top:14px">
+            <div class="row footer-actions">
               <div class="sticky-actions">
-                <button type="button" class="btn primary" id="calcBtn">Calculate</button>
+                <button type="submit" class="btn primary" id="calcBtn">Calculate</button>
                 <button type="reset" class="btn ghost">Clear</button>
                 <button type="button" class="btn" id="exportBtn" title="Export amortization table to CSV">Export CSV</button>
               </div>
@@ -468,9 +532,9 @@
               <div class="kpi"><div class="k">Scheduled payment</div><div class="v" id="kpiPayment">—</div><div class="muted tiny">Principal + interest</div></div>
               <div class="kpi"><div class="k">Total interest (baseline)</div><div class="v" id="kpiInterestBase">—</div><div class="muted tiny">No extras</div></div>
               <div class="kpi"><div class="k">Total interest (with extras)</div><div class="v" id="kpiInterestWith">—</div><div class="muted tiny">Including strategy + lumps</div></div>
-              <div class="kpi"><div class="k">Interest saved</div><div class="v" id="kpiSaved" style="color:var(--good)">—</div><div class="muted tiny">Baseline − extras</div></div>
+              <div class="kpi good-news"><div class="k">Interest saved</div><div class="v" id="kpiSaved" style="color:var(--good)">—</div><div class="muted tiny">Baseline − extras</div></div>
               <div class="kpi"><div class="k">Payoff date</div><div class="v" id="kpiPayoff">—</div><div class="muted tiny">Requires start date</div></div>
-              <div class="kpi"><div class="k">Time saved</div><div class="v" id="kpiMonthsSaved">—</div><div class="muted tiny">Months saved</div></div>
+              <div class="kpi good-news"><div class="k">Time saved</div><div class="v" id="kpiMonthsSaved">—</div><div class="muted tiny">Months saved</div></div>
             </div>
 
             <div class="row" style="margin-top:12px">
@@ -485,7 +549,7 @@
         <div class="card" id="chartCard" hidden>
           <div class="hd">
             <h2>Charts</h2>
-            <span class="muted tiny">Hover for details</span>
+            <div class="chart-controls"><span class="chart-pill">Hover for details</span><span class="chart-pill">Baseline dashed</span><span class="chart-pill">Extras solid</span></div>
           </div>
           <div class="bd">
             <div class="canvas-wrap">
@@ -555,6 +619,18 @@
   const toCents = (x) => Math.round(((+x || 0) + Number.EPSILON) * 100) / 100;
   const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
   const $ = (id) => document.getElementById(id);
+  const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const chartInk = () => cssVar('--ink') || '#e8f0ff';
+  const chartMuted = () => cssVar('--muted') || '#9fb3c8';
+  const chartAccent = () => cssVar('--accent') || '#4fc3f7';
+  const chartGood = () => cssVar('--good') || '#7ee081';
+  const chartWarn = () => cssVar('--warn') || '#f7b84f';
+  function hexToRgba(hex, a){
+    if (!hex || !hex.startsWith('#')) return `rgba(159,179,200,${a})`;
+    const v = hex.replace('#','');
+    const n = parseInt(v.length===3 ? v.split('').map(c=>c+c).join('') : v, 16);
+    return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+  }
 
   function parseNum(id, fallback=0){
     const v = Number($(id).value);
@@ -925,6 +1001,8 @@
 
     const xMap = (n) => PADL + plotW * (n / maxX);
     const yMap = (v) => (H - PADB) - plotH * ((v - yTicks.min) / Math.max(1e-9, (yTicks.max - yTicks.min)));
+    const hasDates = !!(schedWith.find(r => r.date) || schedBase.find(r => r.date));
+    const longestSched = (schedBase.length >= schedWith.length ? schedBase : schedWith);
 
     // clear
     ctx.clearRect(0,0,W,H);
@@ -953,19 +1031,47 @@
       ctx.fillText(currencyShort(val), PADL-8, y+4);
     });
     ctx.textAlign='center';
-    const xStep = niceNum(maxX/7, true);
-    for (let n=0; n<=maxX; n+=xStep){
+    const tickCount = 7;
+    for (let t=0; t<=tickCount; t++){
+      const n = Math.round((maxX * t) / tickCount);
       const x = xMap(n);
-      ctx.fillText(String(Math.round(n)), x, H-PADB+18);
+      let label = String(Math.round(n));
+      if (hasDates){
+        const row = findRow(longestSched, Math.max(1, n));
+        if (row?.date) label = String(row.date.getUTCFullYear());
+      }
+      ctx.fillText(label, x, H-PADB+18);
     }
-    ctx.fillText('Payment #', PADL + plotW/2, H-10);
+    ctx.fillText(hasDates ? 'Year' : 'Payment #', PADL + plotW/2, H-10);
+
+    // Subtle gradient fill underneath the payoff strategy curve
+    if (schedWith.length){
+      const grad = ctx.createLinearGradient(0, PADT, 0, H-PADB);
+      grad.addColorStop(0, hexToRgba(chartAccent(), .22));
+      grad.addColorStop(1, hexToRgba(chartAccent(), .02));
+      ctx.save();
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      schedWith.forEach((r, i) => {
+        const x = xMap(r.n);
+        const y = yMap(Math.max(0,r.balance));
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.lineTo(xMap(schedWith.at(-1).n), H-PADB);
+      ctx.lineTo(xMap(schedWith[0].n), H-PADB);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
 
     // series
-    function series(sched, stroke, dashed=false){
+    function series(sched, stroke, dashed=false, width=2.5){
       if (!sched.length) return;
       ctx.save();
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = 2.25;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       if (dashed) ctx.setLineDash([7,5]);
       ctx.beginPath();
       sched.forEach((r, i) => {
@@ -976,21 +1082,44 @@
       ctx.stroke();
       ctx.restore();
     }
-    series(schedBase, 'rgba(159,179,200,.95)', true);
-    series(schedWith, 'rgba(79,195,247,.95)', false);
+    series(schedBase, hexToRgba(chartMuted(), .85), true, 1.6);
+    series(schedWith, hexToRgba(chartAccent(), .98), false, 3.0);
 
     // legend
     ctx.textAlign='left';
-    ctx.fillStyle = 'rgba(232,240,255,.95)';
+    ctx.fillStyle = chartInk();
     const lx = W - PADR - 220, ly = PADT + 8;
     ctx.fillText('With extras', lx+34, ly+4);
     ctx.fillText('Baseline', lx+34, ly+22);
-    ctx.strokeStyle = 'rgba(79,195,247,.95)'; ctx.lineWidth=2.25;
+    ctx.strokeStyle = hexToRgba(chartAccent(), .98); ctx.lineWidth=3;
     ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+26, ly); ctx.stroke();
     ctx.save();
-    ctx.strokeStyle = 'rgba(159,179,200,.95)'; ctx.setLineDash([7,5]);
+    ctx.strokeStyle = hexToRgba(chartMuted(), .85); ctx.lineWidth=1.6; ctx.setLineDash([7,5]);
     ctx.beginPath(); ctx.moveTo(lx, ly+18); ctx.lineTo(lx+26, ly+18); ctx.stroke();
     ctx.restore();
+
+    // Summary annotation: lets the chart tell the payoff story at a glance.
+    const interestSavedForLabel = Math.max(0, (schedBase.at(-1)?.cumInt || 0) - (schedWith.at(-1)?.cumInt || 0));
+    const paymentsSavedForLabel = Math.max(0, (schedBase.at(-1)?.n || 0) - (schedWith.at(-1)?.n || 0));
+    if ((interestSavedForLabel > 0 || paymentsSavedForLabel > 0) && schedWith.length){
+      const label = `Saved ${currencyShort(interestSavedForLabel)} interest • ${fmt0.format(paymentsSavedForLabel)} payments sooner`;
+      const last = schedWith.at(-1);
+      ctx.save();
+      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      const boxW = ctx.measureText(label).width + 18;
+      const boxH = 24;
+      const boxX = Math.max(PADL + 6, Math.min(W - PADR - boxW - 6, xMap(last.n) - boxW - 10));
+      const boxY = Math.max(PADT + 6, Math.min(H - PADB - boxH - 6, yMap(Math.max(0,last.balance)) + 18));
+      const r = 10;
+      ctx.beginPath();
+      ctx.moveTo(boxX+r,boxY); ctx.arcTo(boxX+boxW,boxY,boxX+boxW,boxY+boxH,r); ctx.arcTo(boxX+boxW,boxY+boxH,boxX,boxY+boxH,r); ctx.arcTo(boxX,boxY+boxH,boxX,boxY,r); ctx.arcTo(boxX,boxY,boxX+boxW,boxY,r);
+      ctx.closePath();
+      ctx.fillStyle = hexToRgba(chartGood(), .16);
+      ctx.fill();
+      ctx.fillStyle = chartInk();
+      ctx.fillText(label, boxX + 9, boxY + 16);
+      ctx.restore();
+    }
 
     // hover
     const wrap = canvas.parentElement;
@@ -1022,8 +1151,12 @@
 
     function onMove(e){
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const cssX = e.clientX - rect.left;
+      const cssY = e.clientY - rect.top;
+      const x = cssX * scaleX;
+      const y = cssY * scaleY;
       if (x < PADL || x > W-PADR || y < PADT || y > H-PADB){ onLeave(); return; }
 
       const t = (x - PADL) / Math.max(1, plotW);
@@ -1034,13 +1167,13 @@
       ctx.putImageData(baseImage,0,0);
       const xLine = xMap(rw?.n || rb?.n || hoverN);
       ctx.save();
-      ctx.strokeStyle = 'rgba(247,184,79,.95)';
+      ctx.strokeStyle = hexToRgba(chartWarn(), .95);
       ctx.setLineDash([5,5]);
       ctx.beginPath(); ctx.moveTo(xLine,PADT); ctx.lineTo(xLine,H-PADB); ctx.stroke();
       ctx.restore();
 
-      if (rb) dot(xMap(rb.n), yMap(Math.max(0,rb.balance)), 'rgba(159,179,200,.95)');
-      if (rw) dot(xMap(rw.n), yMap(Math.max(0,rw.balance)), 'rgba(79,195,247,.95)');
+      if (rb) dot(xMap(rb.n), yMap(Math.max(0,rb.balance)), hexToRgba(chartMuted(), .95));
+      if (rw) dot(xMap(rw.n), yMap(Math.max(0,rw.balance)), hexToRgba(chartAccent(), .98));
 
       const d = rw?.date || rb?.date;
       const label = d ? d.toISOString().slice(0,10) : `Payment #${hoverN}`;
@@ -1057,8 +1190,8 @@
       `;
 
       const wrapRect = wrap.getBoundingClientRect();
-      let left = e.clientX - wrapRect.left + 14;
-      let top  = e.clientY - wrapRect.top + 14;
+      let left = cssX + 14;
+      let top  = cssY + 14;
       const tw = tip.offsetWidth, th = tip.offsetHeight;
       if (left + tw > wrapRect.width - 8) left = Math.max(8, wrapRect.width - tw - 8);
       if (top + th > wrapRect.height - 8) top = Math.max(8, wrapRect.height - th - 8);
@@ -1078,7 +1211,7 @@
   function drawYearlyPIChart(canvas, yearly){
     const ctx = canvas.getContext('2d');
     const W=canvas.width, H=canvas.height;
-    const PADL=70, PADR=26, PADT=22, PADB=44;
+    const PADL=70, PADR=26, PADT=64, PADB=48;
     const plotW=W-PADL-PADR;
     const plotH=H-PADT-PADB;
 
@@ -1120,8 +1253,8 @@
 
     // bars (stacked: interest + principal + extra)
     const n = yearly.length;
-    const gap = 10;
-    const barW = Math.max(12, (plotW - gap*(n-1)) / n);
+    const gap = n > 24 ? 4 : n > 14 ? 6 : 10;
+    const barW = Math.max(7, (plotW - gap*(n-1)) / n);
 
     function rect(x,y,w,h,fill){
       ctx.fillStyle=fill;
@@ -1129,9 +1262,9 @@
     }
 
     const colors = {
-      interest:'rgba(247,184,79,.92)',
-      principal:'rgba(126,224,129,.88)',
-      extra:'rgba(79,195,247,.92)'
+      interest: hexToRgba(chartWarn(), .92),
+      principal: hexToRgba(chartGood(), .88),
+      extra: hexToRgba(chartAccent(), .92)
     };
 
     ctx.textAlign='center';
@@ -1149,15 +1282,18 @@
       yTop -= hP; rect(x, yTop, barW, hP, colors.principal);
       yTop -= hI; rect(x, yTop, barW, hI, colors.interest);
 
-      // x label
-      ctx.fillStyle='rgba(159,179,200,.95)';
-      const label = String(yr.key).replace('Year ','Y');
-      ctx.fillText(label, x+barW/2, H-PADB+18);
+      // x label: skip labels when there are many years so the axis stays readable
+      const labelEvery = Math.max(1, Math.ceil(n / 12));
+      if (i % labelEvery === 0 || i === n-1){
+        ctx.fillStyle = chartMuted();
+        const label = String(yr.key).replace('Year ','Y');
+        ctx.fillText(label, x+barW/2, H-PADB+18);
+      }
     });
 
-    // legend
+    // Spacious horizontal legend above the plot, so it does not crowd the bars.
     ctx.textAlign='left';
-    const lx = W-PADR-260, ly = PADT+6;
+    const lx = PADL, ly = 24;
     const items = [
       {k:'Interest', c: colors.interest},
       {k:'Principal', c: colors.principal},
@@ -1165,11 +1301,14 @@
     ];
     ctx.font='12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
     items.forEach((it, idx) => {
-      const y = ly + idx*18;
-      ctx.fillStyle = it.c; ctx.fillRect(lx, y-8, 14, 10);
-      ctx.fillStyle = 'rgba(232,240,255,.95)';
-      ctx.fillText(it.k, lx+20, y);
+      const x = lx + idx * 125;
+      ctx.fillStyle = it.c; ctx.fillRect(x, ly-9, 16, 11);
+      ctx.fillStyle = chartInk();
+      ctx.fillText(it.k, x+24, ly);
     });
+    ctx.fillStyle = chartMuted();
+    ctx.textAlign = 'center';
+    ctx.fillText('Annual payment breakdown', PADL + plotW/2, H-12);
   }
 
   // ---------- Mode UI ----------
@@ -1436,6 +1575,46 @@
     `).join('');
   }
 
+
+  // Friendly presets and auto-update
+  function clearExtras(){
+    ['extraMonthly','annualExtra','extraStartMonth','extraEndMonth','taxAnnual','insAnnual','hoaMonthly','pmiMonthly'].forEach(id => { if ($(id)) $(id).value=''; });
+    document.querySelector('#lumpTable tbody').innerHTML = '';
+    addLumpRow({type:'n'});
+    syncPretty();
+    toast('Extras cleared.');
+    maybeAutoCalc();
+  }
+  function applyPreset(kind){
+    if (kind === 'starter'){
+      $('principal').value = '450000'; $('rate').value = '6.75'; $('termYears').value = '30';
+      $('startDate').value = new Date().toISOString().slice(0,10);
+      $('taxAnnual').value = '7200'; $('insAnnual').value = '1800'; $('hoaMonthly').value = '0'; $('pmiMonthly').value = '0';
+    }
+    if (kind === 'extra200') $('extraMonthly').value = '200';
+    if (kind === 'bonus') $('annualExtra').value = '2500';
+    $('rateRange').value = $('rate').value || $('rateRange').value;
+    $('termRange').value = $('termYears').value || $('termRange').value;
+    syncPretty();
+    calculate();
+  }
+  let autoTimer = null;
+  function maybeAutoCalc(){
+    if (!$('autoCalc') || !$('autoCalc').checked) return;
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => {
+      const P = parseNum('principal', NaN), r = parseNum('rate', NaN);
+      const okMode = mode === 'term' ? parseNum('termYears', NaN) > 0 : parseNum('userPayment', NaN) > 0;
+      if (P > 0 && r >= 0 && okMode) calculate();
+    }, 450);
+  }
+  document.querySelectorAll('[data-preset]').forEach(btn => btn.addEventListener('click', () => applyPreset(btn.dataset.preset)));
+  if ($('clearExtrasBtn')) $('clearExtrasBtn').addEventListener('click', clearExtras);
+  ['principal','rate','termYears','userPayment','startDate','extraMonthly','taxAnnual','insAnnual','hoaMonthly','pmiMonthly','payFreq','annualExtra','extraStartMonth','extraEndMonth'].forEach(id => {
+    if ($(id)) $(id).addEventListener('input', maybeAutoCalc);
+    if ($(id)) $(id).addEventListener('change', maybeAutoCalc);
+  });
+
   // ---------- Theme ----------
   function setTheme(next){
     document.documentElement.dataset.theme = next;
@@ -1444,6 +1623,10 @@
   function toggleTheme(){
     const cur = document.documentElement.dataset.theme || 'dark';
     setTheme(cur === 'dark' ? 'light' : 'dark');
+    if (lastWith && lastBase){
+      drawBalanceChart($('balChart'), lastWith.schedule, lastBase.schedule);
+      drawYearlyPIChart($('piChart'), yearlySummary(lastWith.schedule, lastWith.periodsPerYear, !!($('startDate').value)));
+    }
   }
 
   // ---------- Wire up ----------
@@ -1464,7 +1647,7 @@
     }, 0);
   });
 
-  $('calcBtn').addEventListener('click', calculate);
+  $('calcForm').addEventListener('submit', (e) => { e.preventDefault(); calculate(); });
   $('exportBtn').addEventListener('click', () => exportCSV($('amortTable')));
   $('toggleTableBtn').addEventListener('click', () => $('tableCard').hidden = !$('tableCard').hidden);
   $('tableFilter').addEventListener('change', applyTableFilter);
